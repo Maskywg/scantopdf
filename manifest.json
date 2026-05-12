@@ -2,7 +2,8 @@
   "name": "GEM & GPT Hub",
   "short_name": "GEM Hub",
   "description": "集中所有自製 AI 助理，一鍵啟動你的創意工作流",
-  "start_url": "/",
+  "start_url": "/gem-gpt-hub/",
+  "scope": "/gem-gpt-hub/",
   "display": "standalone",
   "background_color": "#f0f2f8",
   "theme_color": "#5b52f0",
@@ -16,7 +17,7 @@
     {
       "name": "新增工具",
       "short_name": "新增",
-      "url": "/?add=1",
+      "url": "/gem-gpt-hub/?add=1",
       "description": "快速新增 GEM 或 GPT"
     }
   ]
