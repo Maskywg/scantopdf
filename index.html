@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>GEM & GPT Hub</title>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#5b52f0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="GEM Hub" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png" />
+  <style>
+    :root {
+      --bg: #f0f2f8;
+      --surface: #ffffff;
+      --surface2: #f5f6fc;
+      --border: #dde0ee;
+      --accent: #5b52f0;
+      --accent2: #ff6584;
+      --accent3: #18b96a;
+      --text: #1a1a2e;
+      --text-muted: #6b6e90;
+      --card-hover: #f7f8ff;
+      --shadow: 0 4px 20px rgba(91,82,240,0.10);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #eef0ff 0%, #f5f0ff 50%, #fff0f5 100%);
+      padding: 48px 24px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 60% 40%, rgba(91,82,240,0.10) 0%, transparent 70%),
+                  radial-gradient(ellipse at 30% 70%, rgba(255,101,132,0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(91,82,240,0.10);
+      border: 1px solid rgba(91,82,240,0.25);
+      color: #5b52f0;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      background: linear-gradient(90deg, #5b52f0, #ff6584, #18b96a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 16px;
+      max-width: 480px;
+      margin: 0 auto 28px;
+    }
+    .stats {
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(240,242,248,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn-add {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 9px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-add:hover { opacity: 0.88; transform: translateY(-1px); }
+    .search-wrap {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 9px 14px 9px 38px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text-muted); }
+
+    /* ── Category Filters ── */
+    .filters {
+      padding: 16px 24px 4px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+    .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* ── Grid ── */
+    .main { padding: 20px 24px 100px; }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 20px 0 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--card-accent, var(--accent));
+      border-radius: 16px 16px 0 0;
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .card:hover {
+      background: var(--card-hover);
+      border-color: rgba(108,99,255,0.3);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .card:hover::before { opacity: 1; }
+
+    .card-header { display: flex; align-items: flex-start; gap: 12px; }
+    .card-emoji {
+      font-size: 28px;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface2);
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+    .card-info { flex: 1; min-width: 0; }
+    .card-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 5px;
+    }
+    .card-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(91,82,240,0.10);
+      color: #5b52f0;
+      border: 1px solid rgba(91,82,240,0.20);
+    }
+    .card-badge.gpt {
+      background: rgba(24,185,106,0.10);
+      color: #18b96a;
+      border-color: rgba(24,185,106,0.25);
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      flex: 1;
+    }
+    .card-footer { display: flex; gap: 8px; align-items: center; margin-top: auto; }
+    .card-link {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .card-link:hover { opacity: 0.9; transform: scale(1.01); }
+    .card-link.gpt { background: linear-gradient(135deg, #10a37f, #1a7f5a); }
+    .card-menu-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 10px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .card-menu-btn:hover { background: var(--border); color: var(--text); }
+    .card-menu {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      right: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      z-index: 50;
+      min-width: 120px;
+      box-shadow: var(--shadow);
+    }
+    .card-menu.open { display: block; }
+    .card-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+      color: var(--text);
+    }
+    .card-menu-item:hover { background: var(--border); }
+    .card-menu-item.danger { color: #ff6b6b; }
+    .card-menu-item.danger:hover { background: rgba(255,107,107,0.1); }
+
+    /* ── Empty State ── */
+    .empty {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty h3 { font-size: 18px; margin-bottom: 6px; color: var(--text); }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 24px rgba(108,99,255,0.5);
+      transition: all 0.2s;
+      z-index: 200;
+    }
+    .fab:hover { background: #7d75ff; transform: scale(1.08) rotate(5deg); }
+    .fab-label {
+      position: fixed;
+      bottom: 36px;
+      right: 94px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(8px);
+      transition: all 0.2s;
+    }
+    .fab:hover + .fab-label { opacity: 1; transform: translateX(0); }
+
+    /* ── Modal ── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .modal-close {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+    }
+    .modal-close:hover { background: var(--border); color: var(--text); }
+
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+      letter-spacing: 0.5px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent);
+    }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-select option { background: var(--surface2); }
+
+    .type-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .type-btn.active {
+      border-color: var(--accent);
+      background: rgba(108,99,255,0.15);
+      color: var(--accent);
+    }
+    .type-btn.active.gpt {
+      border-color: var(--accent3);
+      background: rgba(67,233,123,0.12);
+      color: var(--accent3);
+    }
+    .emoji-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .emoji-opt {
+      font-size: 22px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .emoji-opt:hover, .emoji-opt.selected { border-color: var(--accent); background: rgba(108,99,255,0.15); transform: scale(1.1); }
+
+    .form-actions { display: flex; gap: 10px; margin-top: 24px; }
+    .btn-cancel {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-cancel:hover { background: var(--border); }
+    .btn-submit {
+      flex: 2;
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      border-radius: 10px;
+      padding: 11px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+
+    /* ── URL Step ── */
+    .url-step { margin-bottom: 16px; }
+    .url-primary { font-size: 14px; }
+    .url-status {
+      min-height: 22px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 7px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .url-status.detecting { color: var(--text-muted); }
+    .url-status.success   { color: var(--accent3); }
+    .url-status.manual    { color: #f6a623; }
+    .url-status.error     { color: #ff6b6b; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 12px; height: 12px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      display: inline-block;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ── Details section ── */
+    .add-details { animation: slideUp 0.2s ease; }
+    .add-details.hidden { display: none; }
+    .detected-type-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .detected-type-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid;
+    }
+    .detected-type-chip.gem { background: rgba(91,82,240,0.10); color: #5b52f0; border-color: rgba(91,82,240,0.25); }
+    .detected-type-chip.gpt { background: rgba(24,185,106,0.10); color: #18b96a; border-color: rgba(24,185,106,0.25); }
+
+    /* ── Edit Modal ── */
+    #editOverlay .modal-title { color: #5b52f0; }
+    .edit-type-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .btn-switch-type {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 8px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-switch-type:hover { border-color: var(--accent); color: var(--accent); }
+    .url-redetect-row {
+      display: flex;
+      gap: 8px;
+    }
+    .url-redetect-row .form-input { flex: 1; }
+    .btn-redetect {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      font-size: 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-redetect:hover { border-color: var(--accent); background: rgba(91,82,240,0.08); transform: rotate(20deg); }
+    .btn-redetect.spinning { animation: spin 0.7s linear infinite; pointer-events: none; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 96px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: var(--accent3); color: var(--accent3); }
+    .toast.error { border-color: #ff6b6b; color: #ff6b6b; }
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">AI 工具集</div>
+  <h1>✦ GEM & GPT Hub</h1>
+  <p>集中所有自製 AI 助理，一鍵啟動你的創意工作流</p>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num" id="statTotal">0</div>
+      <div class="stat-label">總工具數</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="statGem">0</div>
+      <div class="stat-label">Gemini GEMs</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="statGpt">0</div>
+      <div class="stat-label">ChatGPT GPTs</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="statCat">0</div>
+      <div class="stat-label">分類</div>
+    </div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input class="search-input" type="text" id="searchInput" placeholder="搜尋工具名稱或分類…" />
+  </div>
+  <button class="btn-add" id="toolbarAddBtn">＋ 新增工具</button>
+</div>
+
+<!-- Filters -->
+<div class="filters" id="filtersContainer"></div>
+
+<!-- Main Grid -->
+<div class="main">
+  <div class="section-title" id="resultLabel">所有工具</div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyState" style="display:none">
+    <div class="empty-icon">🔍</div>
+    <h3>沒有找到結果</h3>
+    <p>試試其他關鍵字，或新增工具！</p>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn" title="新增工具">＋</button>
+<div class="fab-label">新增 GEM / GPT</div>
+
+<!-- Add Modal -->
+<div class="overlay" id="addOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✦ 新增工具</div>
+      <button class="modal-close" id="addClose">✕</button>
+    </div>
+
+    <!-- Step 1: URL -->
+    <div class="url-step">
+      <label class="form-label">貼上工具連結 *</label>
+      <input class="form-input url-primary" id="addUrl"
+        placeholder="貼上 Gemini GEM 或 ChatGPT GPT 連結…" autocomplete="off" />
+      <div class="url-status" id="urlStatus"></div>
+    </div>
+
+    <!-- Step 2: Auto-filled details -->
+    <div id="addDetails" class="add-details hidden">
+      <div class="detected-type-row" id="detectedTypeRow"></div>
+      <div class="form-group">
+        <label class="form-label">工具名稱 *</label>
+        <input class="form-input" id="addName" placeholder="輸入名稱…" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">分類</label>
+        <select class="form-select" id="addCat">
+          <option value="視覺化">🎨 視覺化</option>
+          <option value="創意文學">✍️ 創意文學</option>
+          <option value="研究分析">🔍 研究分析</option>
+          <option value="角色扮演">🎭 角色扮演</option>
+          <option value="工具">🛠️ 工具</option>
+          <option value="音樂">🎵 音樂</option>
+          <option value="語言">📜 語言</option>
+          <option value="思維訓練">💪 思維訓練</option>
+          <option value="技術">🤖 技術</option>
+          <option value="其他">📦 其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">描述（選填）</label>
+        <textarea class="form-textarea" id="addDesc" placeholder="簡短說明這個工具的用途…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">選擇圖示</label>
+        <div class="emoji-picker" id="emojiPicker"></div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn-cancel" id="addCancelBtn">取消</button>
+      <button class="btn-submit" id="addSubmitBtn">✦ 新增工具</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ 編輯工具</div>
+      <button class="modal-close" id="editClose">✕</button>
+    </div>
+    <input type="hidden" id="editId" />
+
+    <!-- Type chip + switch -->
+    <div class="edit-type-row">
+      <div id="editTypeChip" class="detected-type-chip gem">🔷 Gemini GEM</div>
+      <button class="btn-switch-type" id="editSwitchTypeBtn">切換類型</button>
+    </div>
+
+    <!-- URL with re-detect -->
+    <div class="form-group">
+      <label class="form-label">工具連結 *</label>
+      <div class="url-redetect-row">
+        <input class="form-input" id="editUrl" />
+        <button class="btn-redetect" id="editRedetectBtn" title="重新識別名稱與分類">🔄</button>
+      </div>
+      <div class="url-status" id="editUrlStatus"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">工具名稱 *</label>
+      <input class="form-input" id="editName" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">分類</label>
+      <select class="form-select" id="editCat">
+        <option value="視覺化">🎨 視覺化</option>
+        <option value="創意文學">✍️ 創意文學</option>
+        <option value="研究分析">🔍 研究分析</option>
+        <option value="角色扮演">🎭 角色扮演</option>
+        <option value="工具">🛠️ 工具</option>
+        <option value="音樂">🎵 音樂</option>
+        <option value="語言">📜 語言</option>
+        <option value="思維訓練">💪 思維訓練</option>
+        <option value="技術">🤖 技術</option>
+        <option value="其他">📦 其他</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">描述（選填）</label>
+      <textarea class="form-textarea" id="editDesc" placeholder="簡短說明這個工具的用途…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">選擇圖示</label>
+      <div class="emoji-picker" id="editEmojiPicker"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" id="editCancelBtn">取消</button>
+      <button class="btn-submit" id="editSubmitBtn">💾 儲存變更</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────
+// 初始資料
+// ──────────────────────────────────────────────
+const INITIAL_GEMS = [
+  { id:'1',  type:'gem', name:'工程視覺化與動力學動畫專家', url:'https://gemini.google.com/gem/1-bQxKZ2X_AUQMVrRLDiPYWCdHYjRfU-V?usp=sharing', cat:'視覺化', emoji:'🔧', desc:'將工程機械原理轉化為動態視覺動畫的專家' },
+  { id:'2',  type:'gem', name:'極簡影像生成專員', url:'https://gemini.google.com/gem/1_9a4D-hn-GxbH3xfI96LTkVpfwf00wTU?usp=sharing', cat:'視覺化', emoji:'🎨', desc:'以極簡風格生成精準影像的創作助手' },
+  { id:'3',  type:'gem', name:'建築施工分鏡圖 Prompt 生成專家', url:'https://gemini.google.com/gem/1QXGjAOaXLVIX4sAiTjr4lHybM21G7W6t?usp=sharing', cat:'視覺化', emoji:'🏗️', desc:'為建築施工各階段生成高品質 AI 繪圖提示詞' },
+  { id:'4',  type:'gem', name:'生物視覺化導師', url:'https://gemini.google.com/gem/1b5fQnD7Tyu-l8Ugn91hJzgf8Xz54MUi-?usp=sharing', cat:'視覺化', emoji:'🧬', desc:'將生物學概念轉化為直觀視覺圖像的教學助手' },
+  { id:'5',  type:'gem', name:'時空倒錯視覺構思師', url:'https://gemini.google.com/gem/13_sCHeHqE_lknSK88GUfRm8tzRDjwkXE?usp=sharing', cat:'視覺化', emoji:'⏳', desc:'跨越時空界限的創意視覺概念設計師' },
+  { id:'6',  type:'gem', name:'創意連鎖發想專家', url:'https://gemini.google.com/gem/1ldoVCKG4LcdFPCa5PL20Yr0UAs4YwjXt?usp=sharing', cat:'創意文學', emoji:'💡', desc:'以連鎖思維激發源源不絕的創意靈感' },
+  { id:'7',  type:'gem', name:'物理視覺化導師', url:'https://gemini.google.com/gem/1NVEPWIR_JsppGaEFxU0perLRYQxzD8LE?usp=sharing', cat:'視覺化', emoji:'⚛️', desc:'讓抽象物理定律變得生動可視的教學夥伴' },
+  { id:'8',  type:'gem', name:'專業深度研究分析師', url:'https://gemini.google.com/gem/1lJ9xRoDI8c5MA2xgYklfUYEflX4qkNLN?usp=sharing', cat:'研究分析', emoji:'🔍', desc:'進行深度研究調查與資料分析的專業助理' },
+  { id:'9',  type:'gem', name:'屁話文學大師', url:'https://gemini.google.com/gem/18WYq7xW-js_FzFpyH9EIm0BysESYwEDZ?usp=sharing', cat:'創意文學', emoji:'😂', desc:'以高深文學語言包裝廢話的幽默創作家' },
+  { id:'10', type:'gem', name:'機器人指令架構師', url:'https://gemini.google.com/gem/1mZbnTsWntKV_J6lJX8C0OGDjG14qAXeC?usp=sharing', cat:'技術', emoji:'🤖', desc:'設計精準 AI 系統提示詞與指令架構的技術專家' },
+  { id:'11', type:'gem', name:'金句生成專家', url:'https://gemini.google.com/gem/1B5vgQ7SmhE-15V3m2x6p8WPRrLBg5ySq?usp=sharing', cat:'創意文學', emoji:'✨', desc:'創作打動人心、廣為流傳金句語錄的高手' },
+  { id:'12', type:'gem', name:'QR Code 快速生成專家', url:'https://gemini.google.com/gem/1BU5u0NZ9VA9Vzx4p7BXFSrlbXq5YYJMq?usp=sharing', cat:'工具', emoji:'📱', desc:'快速生成各種用途 QR Code 的實用工具' },
+  { id:'13', type:'gem', name:'專業角色設定圖繪製大師', url:'https://gemini.google.com/gem/1e6wa4Zj_IiKNP2WjRu4QM3i8KW5GUhw5?usp=sharing', cat:'視覺化', emoji:'🎭', desc:'繪製精緻角色設定圖與人物造型設計的繪師' },
+  { id:'14', type:'gem', name:'創意漫畫腳本建築師', url:'https://gemini.google.com/gem/1iUcVFCPn02p1jeupUf42M20fPqL52npZ?usp=sharing', cat:'創意文學', emoji:'📖', desc:'構建引人入勝的漫畫故事結構與分格腳本' },
+  { id:'15', type:'gem', name:'Suno AI 音樂提示詞生成專家', url:'https://gemini.google.com/gem/1iwqaKOasR062c6nRj737bxCTjGlMi85c?usp=sharing', cat:'音樂', emoji:'🎵', desc:'為 Suno AI 生成最佳化音樂創作提示詞' },
+  { id:'16', type:'gem', name:'月球移民計劃', url:'https://gemini.google.com/gem/1fTFzz8ytqHrsrHKPc9pAv3P4TYUBeHr7?usp=sharing', cat:'角色扮演', emoji:'🌙', desc:'探索人類在月球建立文明的科幻沉浸式體驗' },
+  { id:'17', type:'gem', name:'孫子兵法現代軍師', url:'https://gemini.google.com/gem/1zHI3aK7crLVRqXJ1UTlmTmXXfSRMvULr?usp=sharing', cat:'角色扮演', emoji:'⚔️', desc:'以古代兵法智慧解析現代商業與人生策略' },
+  { id:'18', type:'gem', name:'蘇東坡2.1', url:'https://gemini.google.com/gem/1gRy6msIai5vMiiXqwSsX-aqoCXM497Um?usp=sharing', cat:'角色扮演', emoji:'🖌️', desc:'與北宋文豪蘇東坡展開跨時空的文學對話' },
+  { id:'19', type:'gem', name:'古典詩詞白話翻譯專家', url:'https://gemini.google.com/gem/1I5frelm7jKSMCqQlNuXTWTvEsUpF3SNR?usp=sharing', cat:'語言', emoji:'📜', desc:'將古典詩詞精準翻譯為現代白話文的語言學者' },
+  { id:'20', type:'gem', name:'漫畫角色轉化繪師', url:'https://gemini.google.com/gem/1v-m5kjytvVz71dJmyc0YAMKsoL45-BoP?usp=sharing', cat:'視覺化', emoji:'🎨', desc:'將任何角色轉化為不同漫畫風格的繪圖助手' },
+  { id:'21', type:'gem', name:'詩歌視覺化藝術家', url:'https://gemini.google.com/gem/1Ri3vTzSL3L7k6C_IKnZeg0lwV9ZyAEM_?usp=sharing', cat:'視覺化', emoji:'🌸', desc:'將詩歌意境轉化為美麗視覺圖像的藝術創作者' },
+  { id:'22', type:'gem', name:'思維重量訓練師', url:'https://gemini.google.com/gem/1CFk9Jdiagc-ABru0sUUooRGu--4YpaDj?usp=sharing', cat:'思維訓練', emoji:'💪', desc:'鍛鍊思辨能力與邏輯思維的腦力訓練教練' },
+  { id:'23', type:'gem', name:'靈魂重擊吐槽大師', url:'https://gemini.google.com/gem/1QJ91QM_TS8my51dvUdxhNOCd0JDRdS_h?usp=sharing', cat:'創意文學', emoji:'🔥', desc:'以犀利幽默語言吐槽一切荒謬事物的毒舌大師' },
+  { id:'24', type:'gem', name:'感性敘事與金句優化專家', url:'https://gemini.google.com/gem/16nWzgAw-Tzb9qyv-5rXNE7T3x8pT1n54?usp=sharing', cat:'創意文學', emoji:'💬', desc:'優化文案情感共鳴與金句表達的敘事高手' },
+];
+
+const EMOJIS = ['🤖','🎨','🔧','✨','💡','🔍','📖','🎵','🌙','⚔️','🖌️','📜','🌸','💪','🔥','💬','⚛️','🧬','⏳','🏗️','📱','🎭','😂','🛠️','🌟','🚀','💎','🎯','🧠','📊','🌈','⭐','🦋','🎪','🎬','🎤','📸','🌍','🔮','💫'];
+
+// ──────────────────────────────────────────────
+// State
+// ──────────────────────────────────────────────
+const STORAGE_KEY = 'gemhub_data_v1';
+let gems = [];
+let activeFilter = 'all';
+let searchQuery = '';
+let selectedEmoji = '';
+let editSelectedEmoji = '';
+let addType = 'gem';
+let editType = 'gem';
+let openMenuId = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) gems = JSON.parse(raw);
+    else { gems = INITIAL_GEMS; save(); }
+  } catch { gems = INITIAL_GEMS; save(); }
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(gems));
+}
+
+// ──────────────────────────────────────────────
+// Render
+// ──────────────────────────────────────────────
+function getCategories() {
+  return [...new Set(gems.map(g => g.cat))].sort();
+}
+
+function renderFilters() {
+  const cats = getCategories();
+  const container = document.getElementById('filtersContainer');
+  const all = cats.length;
+  container.innerHTML = `
+    <button class="filter-btn ${activeFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">全部 (${gems.length})</button>
+    <button class="filter-btn ${activeFilter === 'gem' ? 'active' : ''}" onclick="setFilter('gem')">🔷 GEM</button>
+    <button class="filter-btn ${activeFilter === 'gpt' ? 'active' : ''}" onclick="setFilter('gpt')">🟢 GPT</button>
+    ${cats.map(c => `<button class="filter-btn ${activeFilter === c ? 'active' : ''}" onclick="setFilter('${c}')">${getCatEmoji(c)} ${c}</button>`).join('')}
+  `;
+}
+
+function getCatEmoji(cat) {
+  const map = { '視覺化':'🎨','創意文學':'✍️','研究分析':'🔍','角色扮演':'🎭','工具':'🛠️','音樂':'🎵','語言':'📜','思維訓練':'💪','技術':'🤖','其他':'📦' };
+  return map[cat] || '📦';
+}
+
+function getCatAccent(cat) {
+  const map = { '視覺化':'#ff6584','創意文學':'#f6c90e','研究分析':'#43e97b','角色扮演':'#fd7b5f','工具':'#38b2ac','音樂':'#ed64a6','語言':'#b794f4','思維訓練':'#48bb78','技術':'#63b3ed','其他':'#a0aec0' };
+  return map[cat] || '#6c63ff';
+}
+
+function filtered() {
+  return gems.filter(g => {
+    if (activeFilter === 'gem' && g.type !== 'gem') return false;
+    if (activeFilter === 'gpt' && g.type !== 'gpt') return false;
+    if (activeFilter !== 'all' && activeFilter !== 'gem' && activeFilter !== 'gpt' && g.cat !== activeFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!g.name.toLowerCase().includes(q) && !g.cat.toLowerCase().includes(q) && !(g.desc||'').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderStats() {
+  document.getElementById('statTotal').textContent = gems.length;
+  document.getElementById('statGem').textContent = gems.filter(g => g.type === 'gem').length;
+  document.getElementById('statGpt').textContent = gems.filter(g => g.type === 'gpt').length;
+  document.getElementById('statCat').textContent = getCategories().length;
+}
+
+function renderGrid() {
+  const list = filtered();
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('emptyState');
+  const label = document.getElementById('resultLabel');
+
+  label.textContent = list.length === gems.length ? `所有工具 (${list.length})` : `搜尋結果 (${list.length})`;
+
+  if (list.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  grid.innerHTML = list.map(g => {
+    const isGpt = g.type === 'gpt';
+    const accent = getCatAccent(g.cat);
+    return `
+    <div class="card" id="card-${g.id}" style="--card-accent:${accent}">
+      <div class="card-header">
+        <div class="card-emoji">${g.emoji || '🔷'}</div>
+        <div class="card-info">
+          <div class="card-name">${escHtml(g.name)}</div>
+          <span class="card-badge ${isGpt ? 'gpt' : ''}">${getCatEmoji(g.cat)} ${escHtml(g.cat)}</span>
+        </div>
+      </div>
+      ${g.desc ? `<div class="card-desc">${escHtml(g.desc)}</div>` : ''}
+      <div class="card-footer">
+        <a class="card-link ${isGpt ? 'gpt' : ''}" href="${escHtml(g.url)}" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          開始使用
+        </a>
+        <div class="card-menu-btn" onclick="toggleMenu('${g.id}', event)">⋮
+          <div class="card-menu ${openMenuId === g.id ? 'open' : ''}" id="menu-${g.id}">
+            <div class="card-menu-item" onclick="editGem('${g.id}'); event.stopPropagation()">✏️ 編輯</div>
+            <div class="card-menu-item danger" onclick="deleteGem('${g.id}'); event.stopPropagation()">🗑️ 刪除</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function render() { renderStats(); renderFilters(); renderGrid(); }
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ──────────────────────────────────────────────
+// Interactions
+// ──────────────────────────────────────────────
+function setFilter(f) { activeFilter = f; render(); }
+function setType(t) {
+  addType = t;
+  document.getElementById('typeGem').className = 'type-btn' + (t === 'gem' ? ' active' : '');
+  document.getElementById('typeGpt').className = 'type-btn' + (t === 'gpt' ? ' active gpt' : '');
+}
+
+function toggleMenu(id, e) {
+  e.stopPropagation();
+  openMenuId = openMenuId === id ? null : id;
+  render();
+}
+
+document.addEventListener('click', () => { if (openMenuId) { openMenuId = null; render(); } });
+
+// ── Search ──
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  renderGrid();
+});
+
+// ── URL Auto-detection helpers ──
+function detectTypeFromUrl(url) {
+  if (/gemini\.google\.com\/gem\//i.test(url)) return 'gem';
+  if (/chatgpt\.com\/g\/|chat\.openai\.com\/g\//i.test(url)) return 'gpt';
+  return null;
+}
+
+function extractGptNameFromUrl(url) {
+  const m = url.match(/\/g\/g-[a-zA-Z0-9]+-([^/?#]+)/);
+  if (!m) return null;
+  return m[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+async function fetchPageTitle(url) {
+  try {
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const m = data.contents?.match(/<title[^>]*>([^<]{1,120})<\/title>/i);
+    return m ? m[1].trim() : null;
+  } catch { return null; }
+}
+
+function guessCategory(name) {
+  const n = name.toLowerCase();
+  if (/視覺|影像|繪|動畫|分鏡|pixel|image|visual|photo|圖像/.test(n)) return '視覺化';
+  if (/音樂|suno|music|歌|melody|song|樂曲/.test(n)) return '音樂';
+  if (/研究|分析|報告|research|analysis|數據|調查/.test(n)) return '研究分析';
+  if (/角色|扮演|移民|兵法|軍師|role|play|歷史人物|穿越/.test(n)) return '角色扮演';
+  if (/翻譯|語言|詩詞|古典|language|translate/.test(n)) return '語言';
+  if (/思維|訓練|邏輯|think|train|腦力/.test(n)) return '思維訓練';
+  if (/機器人|指令|架構|bot|command|robot|程式|coding/.test(n)) return '技術';
+  if (/qr|code|工具|tool|生成器|generator|快速/.test(n)) return '工具';
+  if (/創意|文學|金句|漫畫|腳本|詩|故事|吐槽|敘事|creative|story|poem|script/.test(n)) return '創意文學';
+  return '其他';
+}
+
+const CAT_EMOJI_MAP = { '視覺化':'🎨','創意文學':'✍️','研究分析':'🔍','角色扮演':'🎭','工具':'🛠️','音樂':'🎵','語言':'📜','思維訓練':'💪','技術':'🤖','其他':'📦' };
+
+function setUrlStatus(state, text) {
+  const el = document.getElementById('urlStatus');
+  el.className = 'url-status ' + state;
+  el.innerHTML = state === 'detecting'
+    ? `<span class="spinner"></span> ${text}`
+    : text;
+}
+
+function showAddDetails(type, name, cat) {
+  addType = type || 'gem';
+  const details = document.getElementById('addDetails');
+  details.classList.remove('hidden');
+
+  // Type chip
+  const chip = type === 'gpt'
+    ? `<span class="detected-type-chip gpt">🟢 ChatGPT GPT</span>`
+    : `<span class="detected-type-chip gem">🔷 Gemini GEM</span>`;
+  document.getElementById('detectedTypeRow').innerHTML = chip;
+
+  if (name) document.getElementById('addName').value = name;
+  if (cat)  document.getElementById('addCat').value = cat;
+
+  const emoji = CAT_EMOJI_MAP[cat] || '✨';
+  selectedEmoji = emoji;
+  renderEmojiPicker('emojiPicker', selectedEmoji, e => { selectedEmoji = e; });
+}
+
+// ── Add Modal ──
+document.getElementById('toolbarAddBtn').addEventListener('click', openAddModal);
+
+function openAddModal() {
+  document.getElementById('addUrl').value = '';
+  document.getElementById('addName').value = '';
+  document.getElementById('addDesc').value = '';
+  document.getElementById('addCat').value = '其他';
+  document.getElementById('addDetails').classList.add('hidden');
+  document.getElementById('detectedTypeRow').innerHTML = '';
+  setUrlStatus('', '');
+  addType = 'gem';
+  selectedEmoji = '✨';
+  clearTimeout(urlDetectTimer);
+  document.getElementById('addOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('addUrl').focus(), 80);
+}
+function closeAddModal() { document.getElementById('addOverlay').classList.remove('open'); }
+
+// URL paste/input → auto-detect
+let urlDetectTimer;
+document.getElementById('addUrl').addEventListener('input', e => {
+  clearTimeout(urlDetectTimer);
+  const url = e.target.value.trim();
+  if (!url.startsWith('http')) { setUrlStatus('', ''); document.getElementById('addDetails').classList.add('hidden'); return; }
+
+  const type = detectTypeFromUrl(url);
+  setUrlStatus('detecting', '識別中…');
+
+  urlDetectTimer = setTimeout(async () => {
+    let name = null;
+
+    // GPT: try extracting from URL slug first
+    if (type === 'gpt') name = extractGptNameFromUrl(url);
+
+    // Try CORS proxy for title
+    if (!name) {
+      name = await fetchPageTitle(url);
+      // Clean up common suffixes
+      if (name) name = name.replace(/\s*[-|–]\s*(Gemini|ChatGPT|OpenAI).*$/i, '').trim();
+    }
+
+    if (name) {
+      const cat = guessCategory(name);
+      showAddDetails(type, name, cat);
+      setUrlStatus('success', `✓ 已識別為 ${type === 'gpt' ? 'ChatGPT GPT' : 'Gemini GEM'}，名稱與分類已自動填入`);
+    } else {
+      showAddDetails(type, '', type === 'gpt' ? '工具' : '其他');
+      setUrlStatus('manual', `⚡ 已識別為 ${type === 'gpt' ? 'ChatGPT GPT' : 'Gemini GEM'}，請手動填入名稱`);
+    }
+  }, 500);
+});
+
+document.getElementById('fabBtn').addEventListener('click', openAddModal);
+document.getElementById('addClose').addEventListener('click', closeAddModal);
+document.getElementById('addCancelBtn').addEventListener('click', closeAddModal);
+document.getElementById('addOverlay').addEventListener('click', e => { if(e.target === document.getElementById('addOverlay')) closeAddModal(); });
+
+document.getElementById('addSubmitBtn').addEventListener('click', () => {
+  const name = document.getElementById('addName').value.trim();
+  const url  = document.getElementById('addUrl').value.trim();
+  const cat  = document.getElementById('addCat').value;
+  const desc = document.getElementById('addDesc').value.trim();
+  if (!url)  return toast('請貼上工具連結', 'error');
+  if (!url.startsWith('http')) return toast('連結格式不正確', 'error');
+  if (!name) return toast('請填入工具名稱', 'error');
+  const id = Date.now().toString();
+  gems.push({ id, type: addType, name, url, cat, desc, emoji: selectedEmoji || '✨' });
+  save(); render(); closeAddModal();
+  toast(`✓ 已新增「${name}」`, 'success');
+});
+
+// ── Edit ──
+function updateEditTypeChip(type) {
+  editType = type;
+  const chip = document.getElementById('editTypeChip');
+  if (type === 'gpt') {
+    chip.className = 'detected-type-chip gpt';
+    chip.textContent = '🟢 ChatGPT GPT';
+  } else {
+    chip.className = 'detected-type-chip gem';
+    chip.textContent = '🔷 Gemini GEM';
+  }
+}
+
+function setEditUrlStatus(state, text) {
+  const el = document.getElementById('editUrlStatus');
+  el.className = 'url-status ' + state;
+  el.innerHTML = state === 'detecting' ? `<span class="spinner"></span> ${text}` : text;
+}
+
+function editGem(id) {
+  const g = gems.find(x => x.id === id);
+  if (!g) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('editName').value = g.name;
+  document.getElementById('editUrl').value = g.url;
+  document.getElementById('editCat').value = g.cat;
+  document.getElementById('editDesc').value = g.desc || '';
+  editSelectedEmoji = g.emoji || '✨';
+  updateEditTypeChip(g.type || 'gem');
+  setEditUrlStatus('', '');
+  renderEmojiPicker('editEmojiPicker', editSelectedEmoji, e => { editSelectedEmoji = e; });
+  document.getElementById('editOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('editName').focus(), 80);
+  openMenuId = null;
+}
+
+function closeEditModal() { document.getElementById('editOverlay').classList.remove('open'); }
+document.getElementById('editClose').addEventListener('click', closeEditModal);
+document.getElementById('editCancelBtn').addEventListener('click', closeEditModal);
+document.getElementById('editOverlay').addEventListener('click', e => { if(e.target === document.getElementById('editOverlay')) closeEditModal(); });
+
+// Switch type button
+document.getElementById('editSwitchTypeBtn').addEventListener('click', () => {
+  updateEditTypeChip(editType === 'gem' ? 'gpt' : 'gem');
+});
+
+// Re-detect button
+document.getElementById('editRedetectBtn').addEventListener('click', async () => {
+  const url = document.getElementById('editUrl').value.trim();
+  if (!url.startsWith('http')) return toast('請先填入正確連結', 'error');
+  const btn = document.getElementById('editRedetectBtn');
+  btn.classList.add('spinning');
+  setEditUrlStatus('detecting', '識別中…');
+
+  const type = detectTypeFromUrl(url);
+  if (type) updateEditTypeChip(type);
+
+  let name = (type === 'gpt') ? extractGptNameFromUrl(url) : null;
+  if (!name) name = await fetchPageTitle(url);
+  if (name) name = name.replace(/\s*[-|–]\s*(Gemini|ChatGPT|OpenAI).*$/i, '').trim();
+
+  btn.classList.remove('spinning');
+  if (name) {
+    document.getElementById('editName').value = name;
+    const cat = guessCategory(name);
+    document.getElementById('editCat').value = cat;
+    editSelectedEmoji = CAT_EMOJI_MAP[cat] || '✨';
+    renderEmojiPicker('editEmojiPicker', editSelectedEmoji, e => { editSelectedEmoji = e; });
+    setEditUrlStatus('success', '✓ 名稱與分類已重新識別');
+  } else {
+    setEditUrlStatus('manual', '⚡ 無法自動取得名稱，請手動修改');
+  }
+});
+
+document.getElementById('editSubmitBtn').addEventListener('click', () => {
+  const id   = document.getElementById('editId').value;
+  const name = document.getElementById('editName').value.trim();
+  const url  = document.getElementById('editUrl').value.trim();
+  const cat  = document.getElementById('editCat').value;
+  const desc = document.getElementById('editDesc').value.trim();
+  if (!name) return toast('請輸入工具名稱', 'error');
+  if (!url)  return toast('請輸入工具連結', 'error');
+  const idx = gems.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  gems[idx] = { ...gems[idx], type: editType, name, url, cat, desc, emoji: editSelectedEmoji || '✨' };
+  save(); render(); closeEditModal();
+  toast(`✓「${name}」已儲存`, 'success');
+});
+
+// ── Delete ──
+function deleteGem(id) {
+  const g = gems.find(x => x.id === id);
+  if (!g) return;
+  if (!confirm(`確定要刪除「${g.name}」嗎？`)) { openMenuId = null; render(); return; }
+  gems = gems.filter(x => x.id !== id);
+  save(); render();
+  toast(`已刪除「${g.name}」`);
+}
+
+// ── Emoji Picker ──
+function renderEmojiPicker(containerId, selected, onSelect) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = EMOJIS.map(e => `
+    <div class="emoji-opt ${e === selected ? 'selected' : ''}" onclick="selectEmoji('${containerId}', '${e}', arguments[0])">
+      ${e}
+    </div>`).join('');
+  container._onSelect = onSelect;
+}
+
+function selectEmoji(containerId, emoji, e) {
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('.emoji-opt').forEach(el => el.classList.remove('selected'));
+  e.currentTarget.classList.add('selected');
+  if (container._onSelect) container._onSelect(emoji);
+}
+
+// ── Toast ──
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 2800);
+}
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeAddModal(); closeEditModal(); }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+});
+
+// ──────────────────────────────────────────────
+// Init
+// ──────────────────────────────────────────────
+load();
+render();
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const fab = document.getElementById('fabBtn');
+  fab.title = '安裝 App 或新增工具';
+});
+</script>
+</body>
+</html>
