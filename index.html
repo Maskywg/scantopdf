@@ -1285,21 +1285,12 @@ document.addEventListener('keydown', e => {
 load();
 render();
 
-// Register Service Worker
+// Unregister any old service workers to clear stale caches
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
   });
 }
-
-// PWA install prompt
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  const fab = document.getElementById('fabBtn');
-  fab.title = '安裝 App 或新增工具';
-});
 </script>
 </body>
 </html>

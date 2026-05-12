@@ -2,7 +2,7 @@
   "name": "GEM & GPT Hub",
   "short_name": "GEM Hub",
   "description": "集中所有自製 AI 助理，一鍵啟動你的創意工作流",
-  "start_url": "/gem-gpt-hub/index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#f0f2f8",
   "theme_color": "#5b52f0",
