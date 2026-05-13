@@ -1,0 +1,41 @@
+{
+  "name": "今晚要吃什麼？",
+  "short_name": "今晚吃什麼",
+  "description": "搜尋附近評分最高的真實餐廳，轉盤隨機選擇，記錄用餐評分",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d0b08",
+  "theme_color": "#f5a623",
+  "orientation": "portrait-primary",
+  "lang": "zh-TW",
+  "categories": ["food", "lifestyle"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "搜尋餐廳",
+      "short_name": "搜尋",
+      "description": "搜尋附近餐廳",
+      "url": "./index.html?tab=search"
+    },
+    {
+      "name": "隨機選擇",
+      "short_name": "隨機",
+      "description": "轉盤隨機選料理",
+      "url": "./index.html?tab=spin"
+    }
+  ]
+}

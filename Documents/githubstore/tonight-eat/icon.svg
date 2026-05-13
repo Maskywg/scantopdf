@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#251808"/>
+      <stop offset="100%" stop-color="#0d0b08"/>
+    </radialGradient>
+    <radialGradient id="bowlGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#f5c842"/>
+      <stop offset="100%" stop-color="#d4820a"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" fill="url(#bgGrad)"/>
+
+  <!-- Subtle gold ring -->
+  <circle cx="256" cy="248" r="178" fill="none" stroke="#f5a623" stroke-width="2" opacity="0.15"/>
+
+  <!-- Bowl body -->
+  <ellipse cx="256" cy="310" rx="138" ry="32" fill="#1a1005"/>
+  <path d="M118 248 Q118 350 256 360 Q394 350 394 248 Z" fill="#1c1208"/>
+  <path d="M118 248 Q118 346 256 356 Q394 346 394 248" fill="none"
+    stroke="url(#bowlGrad)" stroke-width="3.5"/>
+
+  <!-- Bowl rim ellipse -->
+  <ellipse cx="256" cy="248" rx="138" ry="26" fill="none"
+    stroke="url(#bowlGrad)" stroke-width="4"/>
+  <ellipse cx="256" cy="248" rx="138" ry="26" fill="#150e04" opacity="0.6"/>
+
+  <!-- Noodles inside bowl -->
+  <g opacity="0.85" filter="url(#glow)">
+    <path d="M172 244 Q196 230 220 244 Q244 258 268 244 Q292 230 316 244"
+      fill="none" stroke="#f5c842" stroke-width="4" stroke-linecap="round"/>
+    <path d="M182 258 Q206 244 230 258 Q254 272 278 258 Q302 244 326 258"
+      fill="none" stroke="#f5a623" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M190 270 Q214 256 238 270 Q262 284 286 270 Q310 256 322 270"
+      fill="none" stroke="#e07b54" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Chopsticks -->
+  <g filter="url(#glow)">
+    <line x1="208" y1="100" x2="232" y2="222" stroke="#f5c842" stroke-width="6"
+      stroke-linecap="round" opacity="0.9"/>
+    <line x1="236" y1="96" x2="250" y2="220" stroke="#d4820a" stroke-width="5"
+      stroke-linecap="round" opacity="0.9"/>
+  </g>
+
+  <!-- Steam wisps -->
+  <g opacity="0.5" stroke="#f5a623" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M230 200 Q224 185 230 172 Q236 159 230 146"/>
+    <path d="M256 196 Q250 178 256 162 Q262 146 256 132"/>
+    <path d="M282 200 Q276 185 282 172 Q288 159 282 146"/>
+  </g>
+
+  <!-- App name at bottom -->
+  <text x="256" y="428" text-anchor="middle"
+    font-size="46" font-weight="900" font-family="-apple-system, 'PingFang TC', 'Helvetica Neue', sans-serif"
+    fill="#f5a623" letter-spacing="1" opacity="0.95">今晚吃什麼</text>
+  <text x="256" y="472" text-anchor="middle"
+    font-size="26" font-family="-apple-system, 'PingFang TC', sans-serif"
+    fill="#7a6a55" letter-spacing="2">TONIGHT · EAT</text>
+</svg>

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>今晚要吃什麼？</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f5a623">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="今晚吃什麼">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0b08;color:#f0e6d3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+#root{max-width:480px;margin:0 auto;padding:16px 14px 80px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:26px;height:26px;border:3px solid rgba(245,166,35,0.15);border-top-color:#f5a623;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+textarea,button,input{font-family:inherit}
+textarea:focus{outline:none;border-color:#f5a623!important}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#f5a623;border-radius:2px}
+.fadeIn{animation:fadeIn .3s}
+.float{animation:float 3s ease-in-out infinite}
+a{transition:opacity .15s;text-decoration:none}
+a:hover{opacity:.8}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module">
+import { h, render, Fragment } from 'https://esm.sh/preact@10';
+import { useState, useEffect, useRef, useCallback } from 'https://esm.sh/preact@10/hooks';
+import htm from 'https://esm.sh/htm@3';
+const html = htm.bind(h);
+
+// ── 設定 ──────────────────────────────────────────────────────────────────────
+const API_KEY = "AIzaSyDs7Eh6pU1LzoieV_XYtAZOo_rskZYB58U";
+
+const CUISINES = [
+  { key:"all",       label:"全部",    emoji:"🍽️", kw:"restaurant",                        color:"#8a7a65" },
+  { key:"taiwanese", label:"台灣料理", emoji:"🫕", kw:"台灣料理 taiwanese food",            color:"#e07b54" },
+  { key:"japanese",  label:"日式料理", emoji:"🍣", kw:"日式料理 japanese restaurant",       color:"#d4a847" },
+  { key:"chinese",   label:"中式料理", emoji:"🥟", kw:"中式料理 chinese restaurant",        color:"#6abf7b" },
+  { key:"korean",    label:"韓式料理", emoji:"🥩", kw:"韓式料理 korean restaurant",         color:"#5b9bd5" },
+  { key:"western",   label:"西式料理", emoji:"🍕", kw:"西式料理 western restaurant",        color:"#9b7fc7" },
+  { key:"hotpot",    label:"火鍋",    emoji:"🫕", kw:"火鍋 hot pot",                       color:"#e05c7a" },
+  { key:"noodle",    label:"麵食",    emoji:"🍜", kw:"麵食 noodle restaurant",              color:"#4ab8c1" },
+  { key:"bbq",       label:"燒烤",    emoji:"🍖", kw:"燒烤 bbq grill restaurant",          color:"#e0a855" },
+  { key:"brunch",    label:"早午餐",  emoji:"🥞", kw:"早午餐 brunch cafe",                  color:"#c4a45a" },
+  { key:"thai",      label:"泰式料理", emoji:"🍛", kw:"泰式料理 thai restaurant",            color:"#7abf5b" },
+  { key:"vietnamese",label:"越南料理", emoji:"🍜", kw:"越南料理 vietnamese restaurant pho",  color:"#5bbfa0" },
+  { key:"vegan",     label:"素食",    emoji:"🌿", kw:"素食 vegetarian vegan restaurant",    color:"#5abf6a" },
+  { key:"seafood",   label:"海鮮",    emoji:"🦞", kw:"海鮮 seafood restaurant",             color:"#4a8fd4" },
+  { key:"curry",     label:"咖哩",    emoji:"🍛", kw:"咖哩 curry indian restaurant",        color:"#d4874a" },
+  { key:"dimsum",    label:"港式飲茶", emoji:"🥠", kw:"港式 飲茶 dim sum hong kong",         color:"#d44a6a" },
+  { key:"dessert",   label:"甜點",    emoji:"🍰", kw:"甜點 dessert cafe afternoon tea",     color:"#c47ab0" },
+  { key:"izakaya",   label:"居酒屋",  emoji:"🍺", kw:"居酒屋 izakaya japanese bar",         color:"#7a5abf" },
+];
+const WHEEL_ITEMS = CUISINES.slice(1);
+
+// ── 工具 ──────────────────────────────────────────────────────────────────────
+function guessEmoji(name="", types=[]) {
+  const n = name.toLowerCase();
+  if (/拉麵|ramen/.test(n))         return "🍜";
+  if (/壽司|sushi/.test(n))         return "🍣";
+  if (/燒肉|燒烤|bbq/.test(n))      return "🍖";
+  if (/火鍋|shabu/.test(n))         return "🫕";
+  if (/披薩|pizza/.test(n))         return "🍕";
+  if (/漢堡|burger/.test(n))        return "🍔";
+  if (/義大利|pasta/.test(n))       return "🍝";
+  if (/韓式|korea/.test(n))         return "🥩";
+  if (/小籠|餃|dim sum/.test(n))    return "🥟";
+  if (/咖啡|cafe|coffee/.test(n))   return "☕";
+  if (/甜點|dessert|蛋糕/.test(n))  return "🍰";
+  if (/海鮮|seafood/.test(n))       return "🦞";
+  if (/炸雞|chicken/.test(n))       return "🍗";
+  if (types.includes("bakery"))     return "🥐";
+  return "🍽️";
+}
+
+function calcDist(lat1,lng1,lat2,lng2) {
+  const R=6371000, r=x=>x*Math.PI/180;
+  const a=Math.sin(r(lat2-lat1)/2)**2+Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(r(lng2-lng1)/2)**2;
+  const d=2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  return d<1000?`${Math.round(d)} m`:`${(d/1000).toFixed(1)} km`;
+}
+
+function parsePriceLevel(s) {
+  return {PRICE_LEVEL_FREE:0,PRICE_LEVEL_INEXPENSIVE:1,PRICE_LEVEL_MODERATE:2,
+          PRICE_LEVEL_EXPENSIVE:3,PRICE_LEVEL_VERY_EXPENSIVE:4}[s]??null;
+}
+const priceTag = l => (["","$","$$","$$$","$$$$"][l]??"");
+const photoSrc = (name,w=400) => `https://places.googleapis.com/v1/${name}/media?maxWidthPx=${w}&key=${API_KEY}`;
+const mapsUrl  = (id,name) => id
+  ? `https://www.google.com/maps/place/?q=place_id:${id}`
+  : `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
+
+// ── Google Places API (New) ───────────────────────────────────────────────────
+const FIELDS = [
+  "places.id","places.displayName","places.formattedAddress",
+  "places.rating","places.userRatingCount","places.priceLevel",
+  "places.location","places.currentOpeningHours","places.photos","places.types",
+].join(",");
+
+async function searchPlaces(lat,lng,keyword,radius=1500) {
+  const isAll = keyword==="restaurant";
+  const base  = isAll
+    ? "https://places.googleapis.com/v1/places:searchNearby"
+    : "https://places.googleapis.com/v1/places:searchText";
+  const url   = `${base}?key=${API_KEY}&$fields=${encodeURIComponent(FIELDS)}`;
+  const body  = isAll
+    ? {includedTypes:["restaurant"],maxResultCount:20,languageCode:"zh-TW",
+       locationRestriction:{circle:{center:{latitude:lat,longitude:lng},radius}},
+       rankPreference:"DISTANCE"}
+    : {textQuery:keyword,maxResultCount:20,languageCode:"zh-TW",
+       locationBias:{circle:{center:{latitude:lat,longitude:lng},radius}}};
+
+  let res;
+  try {
+    res = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  } catch {
+    res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,
+      {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  }
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return (data.places||[]).map(p=>({
+    id:      p.id,
+    name:    p.displayName?.text||"",
+    address: p.formattedAddress||"",
+    rating:  p.rating??null,
+    totalRatings: p.userRatingCount||0,
+    priceLevel:   parsePriceLevel(p.priceLevel),
+    emoji:   guessEmoji(p.displayName?.text||"",p.types||[]),
+    distance:calcDist(lat,lng,p.location.latitude,p.location.longitude),
+    photo:   p.photos?.[0]?.name||null,
+    isOpen:  p.currentOpeningHours?.openNow??null,
+    lat:     p.location.latitude,
+    lng:     p.location.longitude,
+  }));
+}
+
+// ── 評分 DB ────────────────────────────────────────────────────────────────────
+const DB_KEY="eatApp_v2";
+const loadDB  =()=>JSON.parse(localStorage.getItem(DB_KEY)||"{}");
+const saveDB  =db=>localStorage.setItem(DB_KEY,JSON.stringify(db));
+const addRating=(id,name,score,note)=>{
+  const db=loadDB();
+  if(!db[id]) db[id]={name,entries:[]};
+  db[id].entries.unshift({score,note,date:new Date().toISOString()});
+  saveDB(db);
+};
+const getAvg=id=>{
+  const e=loadDB()[id]?.entries;
+  if(!e?.length) return null;
+  return e.reduce((s,x)=>s+x.score,0)/e.length;
+};
+const isBlacklisted=id=>{ const a=getAvg(id); return a!==null&&a<2.5; };
+
+// ── 轉盤元件 ──────────────────────────────────────────────────────────────────
+function Wheel({angle}) {
+  const ref = useRef();
+  useEffect(()=>{
+    const cv=ref.current; if(!cv) return;
+    const ctx=cv.getContext("2d"), cx=150,cy=150,r=140,n=WHEEL_ITEMS.length;
+    ctx.clearRect(0,0,300,300);
+    WHEEL_ITEMS.forEach((c,i)=>{
+      const s=angle+(i/n)*Math.PI*2-Math.PI/2, e=angle+((i+1)/n)*Math.PI*2-Math.PI/2;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,s,e); ctx.closePath();
+      ctx.fillStyle=c.color; ctx.fill();
+      ctx.strokeStyle="#0d0b08"; ctx.lineWidth=2.5; ctx.stroke();
+      const mid=(s+e)/2, tx=cx+Math.cos(mid)*r*0.65, ty=cy+Math.sin(mid)*r*0.65;
+      ctx.save(); ctx.translate(tx,ty); ctx.rotate(mid+Math.PI/2);
+      ctx.font="bold 11px sans-serif"; ctx.fillStyle="#fff";
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText(c.emoji+" "+c.label.slice(0,3),0,0);
+      ctx.restore();
+    });
+    ctx.beginPath(); ctx.arc(cx,cy,22,0,Math.PI*2);
+    ctx.fillStyle="#0d0b08"; ctx.fill();
+    ctx.strokeStyle="#f5a623"; ctx.lineWidth=2; ctx.stroke();
+    ctx.font="16px sans-serif"; ctx.fillStyle="#fff";
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("🍀",cx,cy);
+  },[angle]);
+  return html`<canvas ref=${ref} width=300 height=300 style="border-radius:50%;display:block;max-width:100%"/>`;
+}
+
+// ── 照片元件 ──────────────────────────────────────────────────────────────────
+function Photo({name,alt}) {
+  const [err,setErr]=useState(false);
+  if(!name||err) return null;
+  return html`<img src=${photoSrc(name)} alt=${alt} onError=${()=>setErr(true)}
+    style="width:100%;height:150px;object-fit:cover;display:block"/>`;
+}
+
+// ── 餐廳卡片 ──────────────────────────────────────────────────────────────────
+function Card({r,onRate,highlight}) {
+  const avg=getAvg(r.id);
+  const stars=n=>"★".repeat(n)+"☆".repeat(5-n);
+  const border=highlight?"1.5px solid #f5a623":"1.5px solid rgba(245,166,35,0.18)";
+  const shadow=highlight?"0 0 20px rgba(245,166,35,0.25)":"none";
+  return html`
+    <div id=${"card-"+r.id} style="background:#1c1409;border-radius:14px;overflow:hidden;
+      margin-bottom:10px;border:${border};box-shadow:${shadow};transition:border .2s">
+      <${Photo} name=${r.photo} alt=${r.name}/>
+      <div style="padding:12px 14px">
+        ${highlight && html`<div style="font-size:11px;color:#f5a623;font-weight:700;margin-bottom:6px">🎯 今晚就去這家！</div>`}
+        <div style="display:flex;gap:10px;align-items:flex-start;cursor:pointer" onClick=${()=>onRate(r)}>
+          <div style="font-size:1.8rem;width:44px;height:44px;display:flex;align-items:center;
+            justify-content:center;background:#0d0b08;border-radius:10px;flex-shrink:0;position:relative">
+            ${r.emoji}
+            ${r.isOpen===false && html`<span style="position:absolute;bottom:-4px;right:-4px;background:#c0392b;
+              color:#fff;font-size:9px;padding:1px 3px;border-radius:3px;font-weight:700">休</span>`}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.9rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${r.name}
+              ${avg>=4 && html`<span style="font-size:10px;background:#c0392b;color:#fff;padding:1px 5px;border-radius:4px;margin-left:6px">常去</span>`}
+            </div>
+            <div style="font-size:12px;color:#7a6a55;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              ${r.rating && html`<span style="color:#f5a623;font-weight:700">⭐ ${r.rating}</span>`}
+              ${r.totalRatings>0 && html`<span>(${r.totalRatings})</span>`}
+              ${priceTag(r.priceLevel) && html`<span>${priceTag(r.priceLevel)}</span>`}
+              <span>🚶 ${r.distance}</span>
+              ${r.isOpen===true && html`<span style="color:#6abf7b;font-weight:700">● 營業中</span>`}
+            </div>
+            ${r.address && html`<div style="font-size:11px;color:#7a6a55;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📌 ${r.address}</div>`}
+            ${avg!==null && html`
+              <div style="margin-top:5px">
+                <span style="font-size:11px;padding:2px 8px;border-radius:6px;
+                  background:${avg>=3?"rgba(106,191,123,0.1)":"rgba(192,57,43,0.1)"};
+                  color:${avg>=3?"#6abf7b":"#e05c3a"};
+                  border:1px solid ${avg>=3?"rgba(106,191,123,0.3)":"rgba(192,57,43,0.3)"}">
+                  ${avg>=3?"👍":"👎"} 我的評分：${stars(Math.round(avg))} (${avg.toFixed(1)})
+                </span>
+              </div>`}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <a href=${mapsUrl(r.id,r.name)} target="_blank" rel="noopener noreferrer"
+            style="flex:1;padding:7px 0;border:1px solid rgba(66,133,244,0.4);border-radius:8px;
+              background:rgba(66,133,244,0.07);color:#6fa8f5;font-size:12px;font-weight:700;
+              text-align:center;display:flex;align-items:center;justify-content:center;gap:4px">
+            🗺️ Google Maps
+          </a>
+          <button onClick=${()=>onRate(r)}
+            style="flex:1;padding:7px 0;border:1px solid rgba(245,166,35,0.3);border-radius:8px;
+              background:rgba(245,166,35,0.07);color:#f5a623;font-size:12px;font-weight:700;cursor:pointer">
+            ⭐ 評分
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── 評分 Modal ────────────────────────────────────────────────────────────────
+function RatingModal({rest,onClose,onSave}) {
+  const [score,setScore]=useState(0);
+  const [hover,setHover]=useState(0);
+  const [note, setNote ]=useState("");
+  if(!rest) return null;
+  return html`
+    <div onClick=${e=>e.target===e.currentTarget&&onClose()}
+      style="position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(5px);
+        z-index:200;display:flex;align-items:flex-end;justify-content:center">
+      <div class="fadeIn" style="background:#1a1510;border:1px solid rgba(245,166,35,0.2);
+        border-radius:22px 22px 0 0;padding:26px 22px 40px;width:100%;max-width:480px">
+        <div style="width:36px;height:4px;border-radius:2px;background:rgba(245,166,35,0.2);margin:0 auto 18px"/>
+        <div style="font-size:1.05rem;font-weight:700;text-align:center;color:#f5a623;margin-bottom:2px">${rest.name}</div>
+        <div style="text-align:center;color:#7a6a55;font-size:12px;margin-bottom:20px">${rest.address}</div>
+        <div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px">
+          ${[1,2,3,4,5].map(v=>html`
+            <span onClick=${()=>setScore(v)} onMouseEnter=${()=>setHover(v)} onMouseLeave=${()=>setHover(0)}
+              style="font-size:2.2rem;cursor:pointer;transition:transform .1s;
+                opacity:${(hover||score)>=v?1:0.2};transform:${(hover||score)>=v?"scale(1.15)":"scale(1)"}">⭐</span>`)}
+        </div>
+        <textarea value=${note} onInput=${e=>setNote(e.target.value)} placeholder="備注心得（選填）..."
+          style="width:100%;background:#231c13;border:1px solid rgba(245,166,35,0.2);border-radius:10px;
+            padding:10px 12px;color:#f0e6d3;font-size:14px;resize:none;height:68px;margin-bottom:14px"/>
+        <button onClick=${()=>score&&onSave(score,note)} disabled=${!score}
+          style="width:100%;padding:13px;border:none;border-radius:12px;font-weight:700;font-size:15px;
+            background:${score?"#f5a623":"#2a2010"};color:${score?"#0d0b08":"#555"};
+            cursor:${score?"pointer":"not-allowed"};margin-bottom:8px">
+          💾 儲存評分
+        </button>
+        <button onClick=${onClose}
+          style="width:100%;padding:11px;border:1px solid rgba(245,166,35,0.2);border-radius:12px;
+            background:transparent;color:#c0b090;font-weight:700;font-size:14px;cursor:pointer">
+          取消
+        </button>
+      </div>
+    </div>`;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function Toast({msg,onDone}) {
+  useEffect(()=>{ const t=setTimeout(onDone,2600); return ()=>clearTimeout(t); },[]);
+  return html`
+    <div style="position:fixed;bottom:72px;left:50%;transform:translateX(-50%);
+      background:#1a1510;border:1px solid #f5a623;color:#f5a623;
+      padding:9px 18px;border-radius:20px;font-size:13px;z-index:300;
+      white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.6);pointer-events:none">
+      ${msg}
+    </div>`;
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+const Spinner = ({text}) => html`
+  <div style="text-align:center;padding:36px;color:#7a6a55">
+    <div class="spinner"/>
+    ${text}
+  </div>`;
+
+// ── 主 App ────────────────────────────────────────────────────────────────────
+function App() {
+  const [tab,      setTab     ]=useState("search");
+  const [filter,   setFilter  ]=useState("all");
+  const [loc,      setLoc     ]=useState(null);
+  const [rests,    setRests   ]=useState([]);
+  const [loading,  setLoading ]=useState(false);
+  const [locLoad,  setLocLoad ]=useState(false);
+  const [error,    setError   ]=useState("");
+  const [modal,    setModal   ]=useState(null);
+  const [toast,    setToast   ]=useState(null);
+  const [db,       setDb      ]=useState(loadDB());
+  const [picked,   setPicked  ]=useState(null);
+  const [angle,    setAngle   ]=useState(0);
+  const [spinning, setSpinning]=useState(false);
+  const [spunItem, setSpunItem]=useState(null);
+  const [spinRests,setSpinRests]=useState([]);
+  const [spinLoad, setSpinLoad]=useState(false);
+  const [addrInput,setAddrInput]=useState("");
+  const [addrLoad, setAddrLoad ]=useState(false);
+  const spinRef=useRef({angle:0});
+
+  const refreshDb=()=>setDb(loadDB());
+
+  const doSearch=useCallback(async(lat,lng,f)=>{
+    setLoading(true); setError(""); setRests([]); setPicked(null);
+    const cuisine=CUISINES.find(c=>c.key===f)||CUISINES[0];
+    try {
+      let list=await searchPlaces(lat,lng,cuisine.kw,1500);
+      list=list.filter(r=>!isBlacklisted(r.id));
+      list.sort((a,b)=>{
+        const ra=getAvg(a.id)||0, rb=getAvg(b.id)||0;
+        if(ra!==rb) return rb-ra;
+        return (b.rating||0)-(a.rating||0);
+      });
+      setRests(list);
+      if(!list.length) setError("附近找不到符合條件的餐廳，試試換個類型");
+    } catch(e) { setError("搜尋失敗："+e.message); }
+    setLoading(false);
+  },[]);
+
+  const getLocation=async()=>{
+    setLocLoad(true); setError("");
+    // 先嘗試 GPS
+    try {
+      const pos=await new Promise((res,rej)=>
+        navigator.geolocation.getCurrentPosition(res,rej,{timeout:6000,enableHighAccuracy:true})
+      );
+      const lat=pos.coords.latitude, lng=pos.coords.longitude;
+      setLoc({lat,lng,label:`📍 GPS 定位 (${lat.toFixed(4)}, ${lng.toFixed(4)})`});
+      setLocLoad(false);
+      doSearch(lat,lng,filter);
+      return;
+    } catch {}
+    // GPS 失敗 → 用 IP 定位（不需要授權）
+    try {
+      const data=await fetch("https://ipapi.co/json/").then(r=>r.json());
+      if(!data.latitude) throw new Error();
+      const lat=data.latitude, lng=data.longitude;
+      const label=`🌐 IP 定位：${data.city||""}${data.region?", "+data.region:""}`;
+      setLoc({lat,lng,label});
+      setLocLoad(false);
+      doSearch(lat,lng,filter);
+    } catch {
+      setLocLoad(false);
+      setError("location_denied");
+    }
+  };
+
+  const geocodeAddress=async()=>{
+    if(!addrInput.trim()) return;
+    setAddrLoad(true); setError("");
+    try {
+      // 使用 OpenStreetMap Nominatim，免費不需要 API key
+      const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addrInput)}&format=json&limit=1&accept-language=zh-TW`;
+      const res=await fetch(url,{headers:{"Accept-Language":"zh-TW"}});
+      const data=await res.json();
+      if(!data.length) throw new Error("找不到此地址，試試更具體的名稱");
+      const lat=parseFloat(data[0].lat), lng=parseFloat(data[0].lon);
+      const label=data[0].display_name.split(",").slice(0,3).join(", ");
+      setLoc({lat,lng,label});
+      setAddrLoad(false);
+      doSearch(lat,lng,filter);
+    } catch(e) {
+      setAddrLoad(false);
+      setError("地址解析失敗："+e.message);
+    }
+  };
+
+  const handleFilter=f=>{ setFilter(f); if(loc) doSearch(loc.lat,loc.lng,f); };
+
+  const pickRandom=()=>{
+    if(!rests.length) return;
+    const pool=rests.filter(r=>r.isOpen!==false);
+    const target=(pool.length?pool:rests)[Math.floor(Math.random()*(pool.length||rests.length))];
+    setPicked(target.id);
+    setToast(`🎯 今晚就去「${target.name}」！`);
+    setTimeout(()=>document.getElementById("card-"+target.id)?.scrollIntoView({behavior:"smooth",block:"center"}),100);
+  };
+
+  const handleSave=(score,note)=>{
+    addRating(modal.id,modal.name,score,note);
+    refreshDb(); setModal(null);
+    setToast(score>=4?"太棒了！下次還會推薦 🎉":score<=2?"了解，下次不再推薦 👋":"謝謝回饋 ✓");
+    if(loc) setTimeout(()=>doSearch(loc.lat,loc.lng,filter),80);
+  };
+
+  // 轉盤邏輯
+  const spinWheel=()=>{
+    if(spinning) return;
+    setSpinning(true); setSpunItem(null); setSpinRests([]);
+    const extra=(5+Math.random()*5)*Math.PI*2;
+    const target=spinRef.current.angle+extra;
+    const dur=3600, t0=performance.now(), a0=spinRef.current.angle;
+    const ease=t=>1-(1-t)**3;
+    const frame=now=>{
+      const t=Math.min(1,(now-t0)/dur);
+      const a=a0+(target-a0)*ease(t);
+      spinRef.current.angle=a; setAngle(a);
+      if(t<1){ requestAnimationFrame(frame); return; }
+      const norm=(((-target)%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+      const idx=Math.floor((norm/(Math.PI*2))*WHEEL_ITEMS.length)%WHEEL_ITEMS.length;
+      setSpunItem(WHEEL_ITEMS[idx]); setSpinning(false);
+    };
+    requestAnimationFrame(frame);
+  };
+
+  const searchSpun=async()=>{
+    if(!spunItem) return;
+    setSpinLoad(true); setSpinRests([]);
+    let lat=loc?.lat, lng=loc?.lng;
+    if(!lat) {
+      try {
+        const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:10000}));
+        lat=pos.coords.latitude; lng=pos.coords.longitude;
+        setLoc({lat,lng,label:`已定位 (${lat.toFixed(4)}, ${lng.toFixed(4)})`});
+      } catch { setSpinLoad(false); setToast("⚠️ 無法取得位置"); return; }
+    }
+    try {
+      let list=await searchPlaces(lat,lng,spunItem.kw,1500);
+      list=list.filter(r=>!isBlacklisted(r.id)).slice(0,8);
+      setSpinRests(list);
+    } catch(e){ setToast("搜尋失敗："+e.message); }
+    setSpinLoad(false);
+  };
+
+  // 歷史
+  const allHistory=Object.entries(db).flatMap(([id,d])=>
+    d.entries.map(e=>({id,name:d.name,...e}))
+  ).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const totalAvg=allHistory.length?allHistory.reduce((s,x)=>s+x.score,0)/allHistory.length:0;
+
+  const cs="background:#1a1510;border:1px solid rgba(245,166,35,0.18);border-radius:16px;padding:18px;margin-bottom:14px";
+
+  return html`
+    <div style="background:#0d0b08;min-height:100vh;color:#f0e6d3">
+      <div id="root-inner" style="max-width:480px;margin:0 auto;padding:16px 14px 80px">
+
+        <!-- Header -->
+        <div style="text-align:center;padding:24px 0 16px">
+          <span class="float" style="font-size:3rem;display:block;margin-bottom:8px">🍜</span>
+          <h1 style="font-size:1.85rem;font-weight:900;color:#f5a623;letter-spacing:0.04em;
+            text-shadow:0 0 40px rgba(245,166,35,0.45)">今晚要吃什麼？</h1>
+          <p style="color:#7a6a55;font-size:13px;margin-top:5px">搜尋你附近評分最高的真實餐廳</p>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:4px;background:#1a1510;border-radius:14px;padding:4px;
+          margin-bottom:18px;border:1px solid rgba(245,166,35,0.18)">
+          ${[["search","🔍 搜尋"],["spin","🎰 隨機"],["history","📋 紀錄"]].map(([k,l])=>html`
+            <button onClick=${()=>setTab(k)}
+              style="flex:1;padding:10px 4px;border:none;border-radius:10px;font-size:13px;font-weight:700;
+                cursor:pointer;transition:all .2s;
+                background:${tab===k?"#f5a623":"transparent"};color:${tab===k?"#0d0b08":"#7a6a55"}">
+              ${l}
+            </button>`)}
+        </div>
+
+        <!-- ── 搜尋 Tab ── -->
+        ${tab==="search" && html`
+          <div class="fadeIn">
+            <!-- 定位區塊 -->
+            <div style="background:#1a1510;border:1px solid rgba(245,166,35,0.18);border-radius:12px;
+              padding:12px;margin-bottom:12px">
+              <!-- 狀態列 -->
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:${loc?'8px':'0'}">
+                <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
+                  background:${loc?"#6abf7b":"#5a4a35"};
+                  box-shadow:${loc?"0 0 7px #6abf7b":"none"}"/>
+                <span style="font-size:12px;color:#7a6a55;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                  ${loc?loc.label:"尚未設定位置"}
+                </span>
+                ${loc && html`<button onClick=${()=>{setLoc(null);setRests([]);setPicked(null);setError("");}}
+                  style="flex-shrink:0;padding:2px 7px;border:1px solid rgba(245,166,35,0.2);border-radius:5px;
+                    background:transparent;color:#7a6a55;font-size:11px;cursor:pointer">✕ 清除</button>`}
+              </div>
+              <!-- 地址輸入 -->
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <input value=${addrInput} onInput=${e=>setAddrInput(e.target.value)}
+                  onKeyDown=${e=>e.key==="Enter"&&geocodeAddress()}
+                  placeholder="輸入地址或地標（例：西門町）"
+                  style="flex:1;padding:9px 12px;background:#0d0b08;border:1px solid rgba(245,166,35,0.25);
+                    border-radius:8px;color:#f0e6d3;font-size:13px"/>
+                <button onClick=${geocodeAddress} disabled=${addrLoad}
+                  style="padding:9px 12px;border:none;border-radius:8px;background:#f5a623;
+                    color:#0d0b08;font-weight:700;font-size:13px;cursor:pointer;
+                    opacity:${addrLoad?0.6:1};white-space:nowrap">
+                  ${addrLoad?"…":"搜尋"}
+                </button>
+                <button onClick=${getLocation} disabled=${locLoad}
+                  style="padding:9px 10px;border:1px solid rgba(245,166,35,0.3);border-radius:8px;
+                    background:rgba(245,166,35,0.08);color:#f5a623;font-size:14px;
+                    cursor:pointer;opacity:${locLoad?0.6:1};flex-shrink:0"
+                  title="自動定位">
+                  ${locLoad?"⏳":"📍"}
+                </button>
+              </div>
+            </div>
+
+            <!-- 料理篩選 -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+              ${CUISINES.map(c=>html`
+                <button onClick=${()=>handleFilter(c.key)}
+                  style="padding:5px 11px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;
+                    transition:all .15s;
+                    background:${filter===c.key?"rgba(245,166,35,0.15)":"#1c1409"};
+                    border:1px solid ${filter===c.key?"#f5a623":"rgba(245,166,35,0.2)"};
+                    color:${filter===c.key?"#f5a623":"#7a6a55"}">
+                  ${c.emoji} ${c.label}
+                </button>`)}
+            </div>
+
+            <!-- 按鈕列 -->
+            <div style="display:flex;gap:8px;margin-bottom:14px">
+              <button onClick=${getLocation} disabled=${locLoad||loading}
+                style="flex:3;padding:13px;border:none;border-radius:12px;background:#f5a623;
+                  color:#0d0b08;font-weight:700;font-size:14px;cursor:pointer;
+                  opacity:${(locLoad||loading)?0.6:1};box-shadow:0 4px 18px rgba(245,166,35,0.28);
+                  display:flex;align-items:center;justify-content:center;gap:6px">
+                ${locLoad?"📍 定位中…":loading?"🔍 搜尋中…":loc?"🔄 重新搜尋":"📍 搜尋附近餐廳"}
+              </button>
+              ${rests.length>0 && html`
+                <button onClick=${pickRandom}
+                  style="flex:1;padding:13px;border:1px solid rgba(245,166,35,0.3);border-radius:12px;
+                    background:rgba(245,166,35,0.08);color:#f5a623;font-weight:700;font-size:18px;cursor:pointer">
+                  🎯
+                </button>`}
+            </div>
+
+            ${(locLoad||loading) && html`<${Spinner} text=${locLoad?"正在取得你的位置…":"正在搜尋附近餐廳…"}/>`}
+
+            ${error==="location_denied" && html`<div style="font-size:12px;color:#e0a855;padding:4px 2px 8px">📍 無法自動定位，請直接在上方輸入地址或地標</div>`}
+            ${error&&error!=="location_denied"&&!loading && html`<div style="text-align:center;padding:24px;color:#e05c3a;font-size:14px;line-height:1.7">⚠️ ${error}</div>`}
+            ${!loading && rests.map(r=>html`<${Card} key=${r.id} r=${r} onRate=${setModal} highlight=${picked===r.id}/>`)}
+          </div>`}
+
+        <!-- ── 隨機 Tab ── -->
+        ${tab==="spin" && html`
+          <div class="fadeIn">
+            <!-- 定位狀態 -->
+            <div style="display:flex;align-items:center;gap:8px;background:#1a1510;
+              border:1px solid rgba(245,166,35,0.18);border-radius:10px;padding:9px 14px;margin-bottom:10px">
+              <div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
+                background:${loc?"#6abf7b":"#5a4a35"};
+                box-shadow:${loc?"0 0 7px #6abf7b":"none"}"/>
+              <span style="font-size:13px;color:#7a6a55;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                ${loc?loc.label:"尚未定位"}
+              </span>
+              ${loc && html`<button onClick=${()=>{setLoc(null);setSpinRests([]);}}
+                style="flex-shrink:0;padding:3px 8px;border:1px solid rgba(245,166,35,0.2);border-radius:6px;
+                  background:transparent;color:#7a6a55;font-size:11px;cursor:pointer">✕</button>`}
+              <button onClick=${getLocation} disabled=${locLoad}
+                style="padding:5px 10px;border:1px solid rgba(245,166,35,0.3);border-radius:8px;
+                  background:rgba(245,166,35,0.08);color:#f5a623;font-size:11px;font-weight:700;
+                  cursor:pointer;flex-shrink:0;opacity:${locLoad?0.6:1}">
+                ${locLoad?"定位中…":"📍 定位"}
+              </button>
+            </div>
+            ${!loc && html`
+              <div style="display:flex;gap:8px;margin-bottom:10px">
+                <input value=${addrInput} onInput=${e=>setAddrInput(e.target.value)}
+                  onKeyDown=${e=>e.key==="Enter"&&geocodeAddress()}
+                  placeholder="或輸入地址／地標…"
+                  style="flex:1;padding:9px 12px;background:#1a1510;border:1px solid rgba(245,166,35,0.25);
+                    border-radius:8px;color:#f0e6d3;font-size:13px"/>
+                <button onClick=${geocodeAddress} disabled=${addrLoad}
+                  style="padding:9px 14px;border:none;border-radius:8px;background:#f5a623;
+                    color:#0d0b08;font-weight:700;font-size:13px;cursor:pointer;opacity:${addrLoad?0.6:1}">
+                  ${addrLoad?"…":"搜尋"}
+                </button>
+              </div>`}
+            <div style=${cs}>
+              <div style="color:#f5a623;font-weight:700;margin-bottom:14px;font-size:15px">🎰 轉盤決定今晚吃什麼！</div>
+              <div style="text-align:center">
+                <div style="position:relative;display:inline-block">
+                  <div class="float" style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:1.8rem;z-index:2">▼</div>
+                  <${Wheel} angle=${angle}/>
+                </div>
+                <div style="margin:14px 0;padding:14px;background:rgba(245,166,35,0.07);
+                  border:1px solid rgba(245,166,35,0.18);border-radius:12px;
+                  min-height:52px;display:flex;align-items:center;justify-content:center;
+                  font-size:1.15rem;font-weight:700;color:#f5a623">
+                  ${spunItem
+                    ? html`<span>${spunItem.emoji} 今晚就吃 <strong>${spunItem.label}</strong>！</span>`
+                    : html`<span style="color:#7a6a55;font-size:14px">按下轉盤決定今晚吃什麼</span>`}
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button onClick=${spinWheel} disabled=${spinning}
+                    style="flex:2;padding:13px;border:none;border-radius:12px;background:#f5a623;
+                      color:#0d0b08;font-weight:700;font-size:14px;
+                      cursor:${spinning?"not-allowed":"pointer"};opacity:${spinning?0.6:1};
+                      box-shadow:0 4px 18px rgba(245,166,35,0.28)">
+                    🎲 ${spinning?"命運轉動中…":"轉動命運"}
+                  </button>
+                  ${spunItem && html`
+                    <button onClick=${searchSpun} disabled=${spinLoad}
+                      style="flex:1;padding:13px;border:1px solid rgba(245,166,35,0.25);border-radius:12px;
+                        background:transparent;color:#f0e6d3;font-weight:700;font-size:14px;
+                        cursor:pointer;opacity:${spinLoad?0.6:1}">
+                      ${spinLoad?"搜尋中":"搜尋"}
+                    </button>`}
+                </div>
+              </div>
+            </div>
+
+            ${(spinLoad||spinRests.length>0) && html`
+              <div style=${cs}>
+                <div style="color:#f5a623;font-weight:700;margin-bottom:12px">📍 附近的${spunItem?.label}餐廳</div>
+                ${spinLoad
+                  ? html`<${Spinner} text="搜尋真實餐廳中…"/>`
+                  : spinRests.length===0
+                    ? html`<div style="text-align:center;padding:20px;color:#7a6a55">此範圍找不到相關餐廳</div>`
+                    : spinRests.map(r=>html`<${Card} key=${r.id} r=${r} onRate=${setModal}/>`)}
+              </div>`}
+          </div>`}
+
+        <!-- ── 紀錄 Tab ── -->
+        ${tab==="history" && html`
+          <div class="fadeIn">
+            ${allHistory.length>0 && html`
+              <div style="${cs};display:flex;justify-content:space-around;text-align:center">
+                ${[[allHistory.length,"次用餐"],[totalAvg.toFixed(1),"平均評分"],[Object.keys(db).length,"間餐廳"]].map(([v,l])=>html`
+                  <div>
+                    <div style="font-size:1.5rem;font-weight:900;color:#f5a623">${v}</div>
+                    <div style="font-size:11px;color:#7a6a55">${l}</div>
+                  </div>`)}
+              </div>`}
+
+            ${allHistory.length===0
+              ? html`<div style="text-align:center;padding:48px;color:#7a6a55">
+                  <span style="font-size:3rem;display:block;margin-bottom:12px;opacity:.35">📋</span>
+                  <p style="line-height:1.8">還沒有評分紀錄<br/>用餐後記得給評分！</p>
+                </div>`
+              : allHistory.map((r,i)=>{
+                  const stars=n=>"★".repeat(n)+"☆".repeat(5-n);
+                  return html`
+                    <div key=${i} style="background:#1c1409;border:1px solid rgba(245,166,35,0.18);
+                      border-radius:12px;padding:11px 14px;margin-bottom:8px;
+                      display:flex;align-items:center;gap:12px">
+                      <span style="font-size:1.4rem">${r.score>=4?"😍":r.score>=3?"😊":"😞"}</span>
+                      <div style="flex:1;min-width:0">
+                        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</div>
+                        <div style="font-size:11px;color:#7a6a55">
+                          ${new Date(r.date).toLocaleDateString("zh-TW")}
+                          ${r.note?" · "+r.note.slice(0,24):""}
+                        </div>
+                      </div>
+                      <div style="color:#f5a623;font-size:13px;flex-shrink:0">${stars(r.score)}</div>
+                    </div>`;
+                })}
+
+            ${allHistory.length>0 && html`
+              <button onClick=${()=>confirm("確定要清除所有評分紀錄嗎？")&&(localStorage.removeItem(DB_KEY),refreshDb())}
+                style="margin-top:4px;padding:7px 14px;border:1px solid rgba(245,166,35,0.2);
+                  border-radius:8px;background:transparent;color:#7a6a55;font-size:12px;cursor:pointer">
+                🗑️ 清除全部紀錄
+              </button>`}
+          </div>`}
+      </div>
+
+      ${modal && html`<${RatingModal} rest=${modal} onClose=${()=>setModal(null)} onSave=${handleSave}/>`}
+      ${toast && html`<${Toast} msg=${toast} onDone=${()=>setToast(null)}/>`}
+    </div>`;
+}
+
+render(html`<${App}/>`, document.getElementById("root"));
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
