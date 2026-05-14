@@ -95,8 +95,13 @@ function parsePriceLevel(s) {
 const priceTag = l => (["","$","$$","$$$","$$$$"][l]??"");
 const photoSrc = (name,w=400) => `https://places.googleapis.com/v1/${name}/media?maxWidthPx=${w}&key=${API_KEY}`;
 const mapsUrl  = (id,name) => id
-  ? `https://www.google.com/maps/place/?q=place_id:${id}`
-  : `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
+  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}&query_place_id=${id}`
+  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`;
+const naviUrl  = (id,lat,lng,name) => id
+  ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(name)}&destination_place_id=${id}`
+  : lat&&lng
+    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(name)}`;
 
 // ── Google Places API (New) ───────────────────────────────────────────────────
 const FIELDS = [
@@ -228,7 +233,8 @@ function Card({r,onRate,highlight}) {
               <span>🚶 ${r.distance}</span>
               ${r.isOpen===true && html`<span style="color:#6abf7b;font-weight:700">● 營業中</span>`}
             </div>
-            ${r.address && html`<div style="font-size:11px;color:#7a6a55;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📌 ${r.address}</div>`}
+            ${r.address && html`<a href=${mapsUrl(r.id,r.name)} target="_blank" rel="noopener noreferrer"
+              style="font-size:11px;color:#7a6a55;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">📌 ${r.address}</a>`}
             ${avg!==null && html`
               <div style="margin-top:5px">
                 <span style="font-size:11px;padding:2px 8px;border-radius:6px;
@@ -240,12 +246,18 @@ function Card({r,onRate,highlight}) {
               </div>`}
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:10px">
+        <div style="display:flex;gap:6px;margin-top:10px">
           <a href=${mapsUrl(r.id,r.name)} target="_blank" rel="noopener noreferrer"
             style="flex:1;padding:7px 0;border:1px solid rgba(66,133,244,0.4);border-radius:8px;
               background:rgba(66,133,244,0.07);color:#6fa8f5;font-size:12px;font-weight:700;
               text-align:center;display:flex;align-items:center;justify-content:center;gap:4px">
-            🗺️ Google Maps
+            🗺️ 地圖
+          </a>
+          <a href=${naviUrl(r.id,r.lat,r.lng,r.name)} target="_blank" rel="noopener noreferrer"
+            style="flex:1;padding:7px 0;border:1px solid rgba(52,199,89,0.4);border-radius:8px;
+              background:rgba(52,199,89,0.07);color:#34c759;font-size:12px;font-weight:700;
+              text-align:center;display:flex;align-items:center;justify-content:center;gap:4px">
+            🧭 導航
           </a>
           <button onClick=${()=>onRate(r)}
             style="flex:1;padding:7px 0;border:1px solid rgba(245,166,35,0.3);border-radius:8px;
@@ -672,17 +684,32 @@ function App() {
                   const stars=n=>"★".repeat(n)+"☆".repeat(5-n);
                   return html`
                     <div key=${i} style="background:#1c1409;border:1px solid rgba(245,166,35,0.18);
-                      border-radius:12px;padding:11px 14px;margin-bottom:8px;
-                      display:flex;align-items:center;gap:12px">
-                      <span style="font-size:1.4rem">${r.score>=4?"😍":r.score>=3?"😊":"😞"}</span>
-                      <div style="flex:1;min-width:0">
-                        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</div>
-                        <div style="font-size:11px;color:#7a6a55">
-                          ${new Date(r.date).toLocaleDateString("zh-TW")}
-                          ${r.note?" · "+r.note.slice(0,24):""}
+                      border-radius:12px;padding:11px 14px;margin-bottom:8px">
+                      <div style="display:flex;align-items:center;gap:12px">
+                        <span style="font-size:1.4rem">${r.score>=4?"😍":r.score>=3?"😊":"😞"}</span>
+                        <div style="flex:1;min-width:0">
+                          <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</div>
+                          <div style="font-size:11px;color:#7a6a55">
+                            ${new Date(r.date).toLocaleDateString("zh-TW")}
+                            ${r.note?" · "+r.note.slice(0,24):""}
+                          </div>
                         </div>
+                        <div style="color:#f5a623;font-size:13px;flex-shrink:0">${stars(r.score)}</div>
                       </div>
-                      <div style="color:#f5a623;font-size:13px;flex-shrink:0">${stars(r.score)}</div>
+                      <div style="display:flex;gap:6px;margin-top:8px">
+                        <a href=${mapsUrl(r.id,r.name)} target="_blank" rel="noopener noreferrer"
+                          style="flex:1;padding:5px 0;border:1px solid rgba(66,133,244,0.35);border-radius:7px;
+                            background:rgba(66,133,244,0.06);color:#6fa8f5;font-size:11px;font-weight:700;
+                            text-align:center;display:flex;align-items:center;justify-content:center;gap:3px">
+                          🗺️ Google Maps
+                        </a>
+                        <a href=${naviUrl(r.id,null,null,r.name)} target="_blank" rel="noopener noreferrer"
+                          style="flex:1;padding:5px 0;border:1px solid rgba(52,199,89,0.35);border-radius:7px;
+                            background:rgba(52,199,89,0.06);color:#34c759;font-size:11px;font-weight:700;
+                            text-align:center;display:flex;align-items:center;justify-content:center;gap:3px">
+                          🧭 導航
+                        </a>
+                      </div>
                     </div>`;
                 })}
 
