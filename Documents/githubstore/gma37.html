@@ -1224,6 +1224,15 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close
 let myName = '';
 let latestDB = [];
 
+// 同一人不同填寫名稱的別名對照（variant → 統一顯示名稱）
+const NAME_ALIASES = {
+  '襄2': '襄',
+};
+function canonicalName(n) {
+  const t = n.trim();
+  return NAME_ALIASES[t] || t;
+}
+
 // ── 送出預測 ──────────────────────────────────────────
 window.loadMyPrediction = async function() {
   const name = document.getElementById('username').value.trim();
@@ -1262,6 +1271,29 @@ window.loadMyPrediction = async function() {
   } catch(e) {
     showToast('⚠️ 載入失敗，請確認網路連線');
   }
+};
+
+window.editMyPrediction = function(name) {
+  const row = latestDB.find(r => canonicalName(r.name).toLowerCase() === canonicalName(name).toLowerCase());
+  if (!row) { showToast('找不到你的預測資料'); return; }
+  CATEGORIES.forEach(cat => {
+    if (cat.tba || !cat.nominees.length) return;
+    const saved = row[cat.id];
+    if (saved) {
+      const idx = cat.nominees.findIndex(n => n.artist === saved);
+      if (idx >= 0) {
+        selections[cat.id] = idx;
+        document.querySelectorAll(`[data-cat="${cat.id}"]`).forEach(el => el.classList.remove('selected'));
+        document.getElementById(`card-${cat.id}-${idx}`)?.classList.add('selected');
+      }
+    }
+  });
+  const canonical = canonicalName(name);
+  document.getElementById('username').value = canonical;
+  myName = canonical;
+  document.getElementById('submit-btn').textContent = '🔄 更新我的預測';
+  document.getElementById('username').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('✅ 預測已載入，修改後點「更新我的預測」送出');
 };
 
 window.submitPrediction = async function() {
@@ -1323,11 +1355,12 @@ function renderLeaderboard() {
     <th></th>
   </tr>`;
 
-  // 同名合併，保留最新一筆
+  // 同名合併（含別名），保留最新一筆，統一用 canonical 名稱顯示
   const seen = new Map();
   data.forEach(row => {
-    const key = row.name.trim().toLowerCase();
-    if (!seen.has(key) || row.time > seen.get(key).time) seen.set(key, row);
+    const key = canonicalName(row.name).toLowerCase();
+    const entry = { ...row, name: canonicalName(row.name) };
+    if (!seen.has(key) || row.time > seen.get(key).time) seen.set(key, entry);
   });
   const deduped = [...seen.values()];
   document.getElementById('lb-count').textContent = deduped.length ? `· ${deduped.length} 人參與` : '';
@@ -1339,8 +1372,12 @@ function renderLeaderboard() {
     const isMe = row.name.toLowerCase() === myName.toLowerCase();
     const timeStr = new Date(row.time).toLocaleString('zh-TW', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     const delBtn = isMe
-      ? `<td><button onclick="deleteEntry('${row.name.replace(/'/g,"\\'")}')"\
-           style="background:none;border:1.5px solid #f0c0d8;color:#d06090;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 刪除</button></td>`
+      ? `<td style="white-space:nowrap;display:flex;gap:4px;align-items:center">
+           <button onclick="editMyPrediction('${row.name.replace(/'/g,"\\'")}')"\
+             style="background:none;border:1.5px solid #c8b8f8;color:#6040c0;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">✏️ 修改</button>
+           <button onclick="deleteEntry('${row.name.replace(/'/g,"\\'")}')"\
+             style="background:none;border:1.5px solid #f0c0d8;color:#d06090;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑</button>
+         </td>`
       : '<td></td>';
     return `<tr style="${isMe ? 'background:#f5ecff;' : ''}">
       <td style="font-weight:700;color:#9a6acc">${SYM[i] || i + 1}</td>
