@@ -658,6 +658,43 @@
     }
     .yt-open-btn:hover { background: #c83030; }
 
+    /* ── 匿名標籤 ── */
+    .anon-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #a080c8;
+      background: #f5eeff;
+      border: 1px solid #e0d0f8;
+      border-radius: 20px;
+      padding: 5px 13px;
+    }
+
+    /* ── 分享按鈕 ── */
+    .share-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 14px;
+      background: white;
+      border: 2px solid #e0c8f8;
+      color: #8c48d0;
+      padding: 11px 28px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+    }
+    .share-btn:hover {
+      background: #f5ecff;
+      border-color: #b088e0;
+      transform: translateY(-1px);
+    }
+
     /* ── 鎖定 ── */
     .nominee-card.locked { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .submit-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
@@ -729,6 +766,7 @@
 <div class="name-box">
   <label>✦ 你的名字</label>
   <input type="text" id="username" placeholder="輸入名字，然後往下選出每個獎項的預測獲獎者 ↓" maxlength="20">
+  <div><span class="anon-tag">🔒 可用暱稱或匿名 · 不需要真實姓名 · 歡迎轉發給朋友一起預測</span></div>
 </div>
 
 <!-- 主內容 -->
@@ -738,6 +776,8 @@
 <div class="submit-area">
   <button class="submit-btn" id="submit-btn" onclick="submitPrediction()">🏆 送出我的預測</button>
   <p class="hint" id="submit-hint">選完所有獎項後再送出</p>
+  <br>
+  <button class="share-btn" onclick="sharePage()">📢 轉發給朋友一起預測</button>
 </div>
 
 <div class="divider"></div>
@@ -1095,6 +1135,21 @@ function renderCategories() {
     container.appendChild(section);
   });
 }
+
+// ── 分享 ─────────────────────────────────────────────
+window.sharePage = async function() {
+  const url = location.href;
+  const text = '🎵 第37屆金曲獎預測 2026\n你選誰得獎？歡迎匿名投票！';
+  if (navigator.share) {
+    try { await navigator.share({ title: '金曲獎預測 2026', text, url }); return; } catch(e) {}
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('🔗 連結已複製！快貼給朋友');
+  } catch(e) {
+    showToast('📋 請手動複製網址分享');
+  }
+};
 
 // ── YouTube Modal ────────────────────────────────────
 window.openYT = function(url, title) {
