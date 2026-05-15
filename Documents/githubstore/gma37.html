@@ -729,6 +729,20 @@
     /* ── 鎖定 ── */
     .nominee-card.locked { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .submit-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .load-btn {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      background: #f0ecff;
+      color: #6040c0;
+      border: 1.5px solid #c8b8f8;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+    .load-btn:hover { background: #e0d8ff; }
 
     @media (max-width: 600px) {
       .nominees-grid { grid-template-columns: 1fr 1fr; }
@@ -796,7 +810,10 @@
 <!-- 名字輸入 -->
 <div class="name-box">
   <label>✦ 你的名字</label>
-  <input type="text" id="username" placeholder="輸入名字，然後往下選出每個獎項的預測獲獎者 ↓" maxlength="20">
+  <div style="display:flex;gap:8px;align-items:center">
+    <input type="text" id="username" placeholder="輸入名字，然後往下選出每個獎項的預測獲獎者 ↓" maxlength="20" style="flex:1">
+    <button class="load-btn" onclick="loadMyPrediction()">📂 載入我的預測</button>
+  </div>
   <div><span class="anon-tag">🔒 可用暱稱或匿名 · 不需要真實姓名 · 歡迎轉發給朋友一起預測</span></div>
 </div>
 
@@ -843,7 +860,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, doc, setDoc, deleteDoc, getDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ── Firebase ──────────────────────────────────────────
 const app = initializeApp({
@@ -1208,11 +1225,50 @@ let myName = '';
 let latestDB = [];
 
 // ── 送出預測 ──────────────────────────────────────────
+window.loadMyPrediction = async function() {
+  const name = document.getElementById('username').value.trim();
+  if (!name) { showToast('❗ 請先輸入你的名字'); return; }
+  const key = name.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+  try {
+    const snap = await getDoc(doc(colRef, key || 'user_'));
+    if (!snap.exists()) { showToast('找不到你的舊預測，請直接選擇後送出'); return; }
+    const data = snap.data();
+    myName = name;
+    document.getElementById('username').value = name;
+    let restored = 0, missing = 0;
+    CATEGORIES.forEach(cat => {
+      if (cat.tba || !cat.nominees.length) return;
+      const saved = data[cat.id];
+      if (saved) {
+        const idx = cat.nominees.findIndex(n => n.artist === saved);
+        if (idx >= 0) {
+          selections[cat.id] = idx;
+          document.querySelectorAll(`[data-cat="${cat.id}"]`).forEach(el => el.classList.remove('selected'));
+          document.getElementById(`card-${cat.id}-${idx}`)?.classList.add('selected');
+          restored++;
+        }
+      } else {
+        missing++;
+      }
+    });
+    if (missing > 0) {
+      showToast(`✅ 已載入 ${restored} 項！還有 ${missing} 個新獎項待補填`);
+      const firstMissing = CATEGORIES.find(c => !c.tba && c.nominees.length && selections[c.id] === undefined);
+      document.getElementById(`grid-${firstMissing?.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      showToast(`✅ 預測已全部載入，可直接更新送出`);
+    }
+    document.getElementById('submit-btn').textContent = '🔄 更新我的預測';
+  } catch(e) {
+    showToast('⚠️ 載入失敗，請確認網路連線');
+  }
+};
+
 window.submitPrediction = async function() {
   myName = document.getElementById('username').value.trim();
   if (!myName) { showToast('❗ 請先輸入你的名字'); return; }
 
-  const missing = CATEGORIES.filter(c => selections[c.id] === undefined);
+  const missing = CATEGORIES.filter(c => !c.tba && c.nominees.length > 0 && selections[c.id] === undefined);
   if (missing.length > 0) {
     showToast(`還有 ${missing.length} 個獎項尚未選擇`);
     document.getElementById(`grid-${missing[0].id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
