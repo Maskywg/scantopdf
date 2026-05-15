@@ -695,6 +695,37 @@
       transform: translateY(-1px);
     }
 
+    /* ── 待公布 TBA ── */
+    .cat-tba-badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+    .tba-placeholder {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 36px 20px;
+      background: #fffdf0;
+      border: 2px dashed #ffc107;
+      border-radius: 16px;
+      text-align: center;
+    }
+    .tba-icon { font-size: 32px; }
+    .tba-title { font-size: 15px; font-weight: 700; color: #7a6010; }
+    .tba-note { font-size: 13px; color: #999; }
+    .tba-note strong { color: #c8960a; }
+
     /* ── 鎖定 ── */
     .nominee-card.locked { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .submit-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
@@ -990,6 +1021,42 @@ const CATEGORIES = [
     ]
   },
   {
+    id: 'best_mandarin_album',
+    name: '最佳華語專輯獎',
+    icon: '💿',
+    color: '#6040c0',
+    bg: '#f5f0ff',
+    tba: true,
+    nominees: []
+  },
+  {
+    id: 'best_tai_album',
+    name: '最佳台語專輯獎',
+    icon: '🎙️',
+    color: '#d04030',
+    bg: '#fff3f0',
+    tba: true,
+    nominees: []
+  },
+  {
+    id: 'best_hakka_album',
+    name: '最佳客語專輯獎',
+    icon: '🌾',
+    color: '#4a8040',
+    bg: '#f0fff0',
+    tba: true,
+    nominees: []
+  },
+  {
+    id: 'best_indigenous_album',
+    name: '最佳原住民語專輯獎',
+    icon: '🏔️',
+    color: '#a05020',
+    bg: '#fff6f0',
+    tba: true,
+    nominees: []
+  },
+  {
     id: 'album_of_year',
     name: '年度專輯獎',
     icon: '🏆',
@@ -1096,11 +1163,17 @@ function renderCategories() {
       <div class="cat-header">
         <div class="cat-icon" style="background:${cat.bg};color:${cat.color}">${cat.icon}</div>
         <div>
-          <div class="cat-title">${cat.name}<span class="cat-count"> · ${cat.nominees.length} 位入圍</span></div>
+          <div class="cat-title">${cat.name}${cat.tba ? '<span class="cat-tba-badge">待公布</span>' : `<span class="cat-count"> · ${cat.nominees.length} 位入圍</span>`}</div>
         </div>
       </div>
       <div class="nominees-grid" id="grid-${cat.id}">
-        ${cat.nominees.map((n, i) => `
+        ${cat.tba ? `
+          <div class="tba-placeholder">
+            <div class="tba-icon">📋</div>
+            <div class="tba-title">入圍名單尚未公布</div>
+            <div class="tba-note">得獎專輯將於 <strong>6/27 典禮現場</strong> 揭曉</div>
+          </div>
+        ` : cat.nominees.map((n, i) => `
           <div class="nominee-card" id="card-${cat.id}-${i}" onclick="select('${cat.id}', ${i})" data-cat="${cat.id}" data-idx="${i}">
             <div class="card-inner">
               <div class="check-badge">✓</div>
