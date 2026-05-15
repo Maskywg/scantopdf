@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第37屆金曲獎預測 2026 🎵</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'PingFang TC', 'Noto Sans TC', sans-serif;
+      background: linear-gradient(135deg, #fff8fc 0%, #f0e8ff 40%, #e8f4ff 100%);
+      min-height: 100vh;
+      color: #3a2e5a;
+      overflow-x: hidden;
+    }
+
+    /* ── 3D 音符背景 ── */
+    #notes-stage {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      perspective: 800px;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .note {
+      position: absolute;
+      font-size: 28px;
+      user-select: none;
+      transform-style: preserve-3d;
+      animation: floatNote linear infinite;
+      opacity: 0;
+    }
+
+    @keyframes floatNote {
+      0%   { opacity: 0;   transform: translateY(0px)   translateZ(0px)   rotateY(0deg)   rotateX(0deg); }
+      10%  { opacity: 0.55; }
+      50%  { opacity: 0.4;  transform: translateY(-180px) translateZ(60px)  rotateY(180deg) rotateX(25deg); }
+      90%  { opacity: 0.15; }
+      100% { opacity: 0;   transform: translateY(-360px) translateZ(0px)   rotateY(360deg) rotateX(0deg); }
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 60px 20px 40px;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #c9a0e8, #f0a0c8);
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 6px 18px;
+      border-radius: 30px;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 14px rgba(180, 100, 220, 0.25);
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #8a4fc8 0%, #d45f9a 60%, #f0a030 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      color: #8a7aaa;
+      margin-bottom: 8px;
+    }
+
+    .hero-date {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 2px solid #e8d5f5;
+      border-radius: 30px;
+      padding: 8px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #7a5aaa;
+      margin-top: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    /* ── 名字輸入區 ── */
+    .name-box {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto 36px;
+      background: white;
+      border-radius: 20px;
+      padding: 24px 28px;
+      box-shadow: 0 4px 24px rgba(140, 80, 200, 0.1);
+      border: 1.5px solid #f0e0ff;
+    }
+
+    .name-box label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #9a6acc;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    .name-box input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e8d5f8;
+      border-radius: 12px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      color: #3a2e5a;
+      background: #faf6ff;
+    }
+
+    .name-box input:focus { border-color: #b088e0; background: white; }
+    .name-box input::placeholder { color: #c0aad8; }
+
+    /* ── 主容器 ── */
+    .main {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 16px 60px;
+    }
+
+    /* ── 類別標題 ── */
+    .cat-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 36px 0 16px;
+    }
+
+    .cat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .cat-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #4a3070;
+    }
+
+    .cat-count {
+      font-size: 12px;
+      color: #aaa;
+      margin-left: 4px;
+      font-weight: 400;
+    }
+
+    /* ── 入圍者卡片格 ── */
+    .nominees-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .nominee-card {
+      background: white;
+      border: 2px solid #f0e8ff;
+      border-radius: 18px;
+      padding: 18px 16px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nominee-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #f5e8ff, #ffe8f5);
+      opacity: 0;
+      transition: opacity 0.22s;
+      border-radius: 16px;
+    }
+
+    .nominee-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(140, 80, 200, 0.14);
+      border-color: #d4a8f0;
+    }
+
+    .nominee-card.selected {
+      border-color: #9c58d8;
+      background: linear-gradient(135deg, #f5e8ff, #ffe8f5);
+      box-shadow: 0 6px 20px rgba(140, 80, 200, 0.2);
+    }
+
+    .nominee-card.selected::before { opacity: 1; }
+
+    .card-inner { position: relative; z-index: 1; }
+
+    .check-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #9c58d8, #d45f9a);
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(156, 88, 216, 0.4);
+    }
+
+    .nominee-card.selected .check-badge { display: flex; }
+
+    .artist-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: #3a2e5a;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .album-name {
+      font-size: 12px;
+      color: #9a7abc;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .yt-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #e05050;
+      background: #fff0f0;
+      border: 1px solid #ffd0d0;
+      border-radius: 8px;
+      padding: 4px 10px;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+
+    .yt-link:hover {
+      background: #ffe0e0;
+      transform: scale(1.03);
+    }
+
+    .yt-icon {
+      width: 14px;
+      height: 10px;
+      background: #e05050;
+      border-radius: 3px;
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .yt-icon::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-40%, -50%);
+      border-style: solid;
+      border-width: 4px 0 4px 7px;
+      border-color: transparent transparent transparent white;
+    }
+
+    .no-yt {
+      font-size: 11px;
+      color: #c0b0d0;
+    }
+
+    /* ── 提交按鈕 ── */
+    .submit-area {
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      background: linear-gradient(to top, rgba(240,232,255,0.98) 60%, transparent);
+      padding: 20px 0 24px;
+      text-align: center;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, #8c48d0, #d04890);
+      color: white;
+      border: none;
+      padding: 16px 48px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(140, 72, 200, 0.35);
+      transition: all 0.22s;
+      letter-spacing: 1px;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(140, 72, 200, 0.45);
+    }
+
+    .submit-btn:active { transform: translateY(0); }
+
+    /* ── 預測結果排行 ── */
+    #leaderboard {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto 80px;
+      padding: 0 16px;
+    }
+
+    .lb-header {
+      font-size: 22px;
+      font-weight: 900;
+      color: #4a3070;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .lb-table-wrap {
+      overflow-x: auto;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      font-size: 13px;
+    }
+
+    th {
+      background: linear-gradient(135deg, #9c58d8, #d45f9a);
+      color: white;
+      padding: 12px 14px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    th:first-child { border-radius: 16px 0 0 0; }
+    th:last-child  { border-radius: 0 16px 0 0; }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f0e8ff;
+      color: #4a3070;
+      white-space: nowrap;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #faf5ff; }
+
+    .clear-btn {
+      background: none;
+      border: 1.5px solid #d0b0e8;
+      color: #9a6acc;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-left: 12px;
+      transition: all 0.18s;
+    }
+
+    .clear-btn:hover { background: #f5e8ff; }
+
+    /* ── Toast 通知 ── */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: linear-gradient(135deg, #8c48d0, #d04890);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── 分隔線 ── */
+    .divider {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #e0c8f5, transparent);
+      margin: 20px 0 0;
+    }
+
+    /* ── 說明文字 ── */
+    .hint {
+      font-size: 13px;
+      color: #b0a0c8;
+      text-align: center;
+      margin: 6px 0 0;
+    }
+
+    /* ── 毒舌開場 ── */
+    .savage-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 20px 0;
+    }
+    .savage-box {
+      background: white;
+      border-radius: 24px;
+      padding: 36px 36px 32px;
+      box-shadow: 0 6px 32px rgba(140,60,200,0.1);
+      border: 2px solid #f0e0ff;
+      position: relative;
+      overflow: hidden;
+    }
+    .savage-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #8c48d0, #d04890, #f0a030);
+    }
+    .savage-eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: #c090e0;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .savage-headline {
+      font-size: clamp(20px,4vw,26px);
+      font-weight: 900;
+      color: #3a2e5a;
+      line-height: 1.4;
+      margin-bottom: 20px;
+    }
+    .savage-headline em {
+      font-style: normal;
+      background: linear-gradient(135deg,#8c48d0,#d04890);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .savage-body {
+      font-size: 15px;
+      color: #5a4878;
+      line-height: 1.9;
+    }
+    .savage-body p { margin-bottom: 12px; }
+    .savage-body p:last-child { margin-bottom: 0; }
+    .savage-body strong { color: #3a2e5a; font-weight: 800; }
+    .savage-cta {
+      margin-top: 24px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg,#f5ecff,#ffe8f5);
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #8c48d0;
+      border-left: 4px solid #c080e8;
+      line-height: 1.7;
+    }
+
+    /* ── 截止 Banner ── */
+    .deadline-banner {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 20px auto 0;
+      padding: 0 20px;
+      display: none;
+    }
+    .deadline-banner.show { display: block; }
+    .deadline-inner {
+      background: linear-gradient(135deg,#2d1a4a,#4a1530);
+      border-radius: 18px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+    }
+    .deadline-icon { font-size: 32px; flex-shrink: 0; }
+    .deadline-text-main { font-size: 18px; font-weight: 900; color: #ff9fc0; margin-bottom: 4px; }
+    .deadline-text-sub { font-size: 13px; color: rgba(255,255,255,0.5); }
+
+    /* ── 倒數計時 ── */
+    .countdown-wrap {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .cd-block {
+      background: white;
+      border-radius: 14px;
+      padding: 12px 16px;
+      text-align: center;
+      min-width: 68px;
+      box-shadow: 0 3px 14px rgba(140,60,200,0.12);
+      border: 1.5px solid #f0e0ff;
+    }
+    .cd-num {
+      font-size: 26px;
+      font-weight: 900;
+      background: linear-gradient(135deg,#8c48d0,#d04890);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      display: block;
+    }
+    .cd-label { font-size: 10px; color: #b0a0c8; font-weight: 700; letter-spacing: 1px; margin-top: 4px; }
+
+    /* ── YouTube Modal ── */
+    #yt-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #yt-modal.open { display: flex; }
+    .yt-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(30,10,60,0.75);
+      backdrop-filter: blur(6px);
+    }
+    .yt-inner {
+      position: relative;
+      z-index: 1;
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      width: min(680px, 92vw);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+    .yt-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .yt-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #3a2e5a;
+    }
+    .yt-close {
+      width: 32px; height: 32px;
+      border: none; background: #f0e8ff;
+      border-radius: 50%;
+      font-size: 16px; cursor: pointer;
+      color: #9a6acc;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.18s;
+    }
+    .yt-close:hover { background: #e0d0f8; }
+    .yt-thumb-wrap {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #111;
+      cursor: pointer;
+    }
+    .yt-thumb-wrap img {
+      width: 100%;
+      display: block;
+      border-radius: 12px;
+    }
+    .yt-play-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.28);
+      border-radius: 12px;
+      transition: background 0.2s;
+    }
+    .yt-thumb-wrap:hover .yt-play-overlay { background: rgba(0,0,0,0.15); }
+    .yt-play-btn {
+      width: 68px; height: 68px;
+      background: #e05050;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      transition: transform 0.18s;
+    }
+    .yt-thumb-wrap:hover .yt-play-btn { transform: scale(1.1); }
+    .yt-play-triangle {
+      border-style: solid;
+      border-width: 13px 0 13px 22px;
+      border-color: transparent transparent transparent white;
+      margin-left: 5px;
+    }
+    .yt-open-btn {
+      display: block;
+      text-align: center;
+      margin-top: 14px;
+      background: #e05050;
+      color: white;
+      padding: 13px 0;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 15px;
+      text-decoration: none;
+      letter-spacing: 0.5px;
+      transition: background 0.18s;
+    }
+    .yt-open-btn:hover { background: #c83030; }
+
+    /* ── 鎖定 ── */
+    .nominee-card.locked { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+    .submit-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+    @media (max-width: 600px) {
+      .nominees-grid { grid-template-columns: 1fr 1fr; }
+      .savage-box { padding: 28px 20px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 3D 音符舞台 -->
+<div id="notes-stage"></div>
+
+<!-- 毒舌開場 -->
+<div class="savage-wrap">
+  <div class="savage-box">
+    <div class="savage-eyebrow">🔥 說在前面</div>
+    <div class="savage-headline">
+      你說你有在聽台灣音樂？<br>
+      那你說，<em>今年金曲獎入圍的有誰？</em>
+    </div>
+    <div class="savage-body">
+      <p>……對。你說不出來。</p>
+      <p>
+        <strong>每年金曲獎開獎，就有一批人瞬間變文盲。</strong><br>
+        看著名單，唸不出名字；聽到得獎，才去 Spotify 搜尋。<br>
+        你的「支持台灣音樂」，只有在轉發慶祝貼文的那三秒是真的。
+      </p>
+      <p>
+        你在群組裡喊「加油」，但你連在幫誰加油都不確定。<br>
+        這不叫熱情，<strong>叫充數。</strong>
+      </p>
+      <p>
+        他們在認真做音樂。你在滑短影音。<br>
+        他們入圍了。你連名字都唸不對。<br>
+        <strong>這不是這些歌手的問題，是你的問題。</strong>
+      </p>
+    </div>
+    <div class="savage-cta">
+      💡 所以在你繼續假裝之前——先來預習。點「收聽作品」聽完入圍歌曲，再押出你的預測。<br>
+      6 月 27 日典禮那晚，至少你知道自己在為誰鼓掌。
+    </div>
+  </div>
+</div>
+
+<!-- 截止 Banner（開獎後顯示） -->
+<div class="deadline-banner" id="deadline-banner">
+  <div class="deadline-inner">
+    <div class="deadline-icon">🔒</div>
+    <div>
+      <div class="deadline-text-main">預測已截止 — 典禮開始了！</div>
+      <div class="deadline-text-sub">2026 年 6 月 27 日 19:00 截止收票 · 看看大家都押誰吧</div>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🎶 第 37 屆 · 流行音樂類</div>
+  <h1>金曲獎預測 2026</h1>
+  <div class="hero-sub">Golden Melody Awards — 選出你心目中的得獎者</div>
+  <div class="hero-date">📅 頒獎典禮：2026 年 6 月 27 日 · 台北小巨蛋</div>
+  <div class="countdown-wrap" id="countdown-wrap"></div>
+</div>
+
+<!-- 名字輸入 -->
+<div class="name-box">
+  <label>✦ 你的名字</label>
+  <input type="text" id="username" placeholder="輸入名字，然後往下選出每個獎項的預測獲獎者 ↓" maxlength="20">
+</div>
+
+<!-- 主內容 -->
+<div class="main" id="main-content"></div>
+
+<!-- 提交 -->
+<div class="submit-area">
+  <button class="submit-btn" id="submit-btn" onclick="submitPrediction()">🏆 送出我的預測</button>
+  <p class="hint" id="submit-hint">選完所有獎項後再送出</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- 排行榜 -->
+<div id="leaderboard">
+  <div class="lb-header">
+    📊 大家的預測
+    <span id="lb-count" style="font-size:13px;color:#b0a0c8;font-weight:400;margin-left:4px"></span>
+  </div>
+  <div class="lb-table-wrap">
+    <table id="lb-table">
+      <thead id="lb-thead"></thead>
+      <tbody id="lb-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- YouTube Modal -->
+<div id="yt-modal">
+  <div class="yt-backdrop" onclick="closeYT()"></div>
+  <div class="yt-inner">
+    <div class="yt-header">
+      <div class="yt-title" id="yt-title"></div>
+      <button class="yt-close" onclick="closeYT()">✕</button>
+    </div>
+    <div id="yt-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── Firebase ──────────────────────────────────────────
+const app = initializeApp({
+  apiKey: "AIzaSyDSQxPkn2D-Gou5rCRzGG5z2v881EphAj8",
+  authDomain: "gen-lang-client-0737444461.firebaseapp.com",
+  projectId: "gen-lang-client-0737444461",
+  storageBucket: "gen-lang-client-0737444461.firebasestorage.app",
+  messagingSenderId: "266006971614",
+  appId: "1:266006971614:web:0c91d8ba3c5f78671f6e4f"
+});
+const fsdb = getFirestore(app);
+const colRef = collection(fsdb, 'gma37_predict');
+
+// ── 資料 ──────────────────────────────────────────────
+const CATEGORIES = [
+  {
+    id: 'song_of_year',
+    name: '年度歌曲獎',
+    icon: '🌟',
+    color: '#f5c842',
+    bg: '#fff9e0',
+    nominees: [
+      { artist: '張震嶽', album: '《浪人的…》', yt: 'https://www.youtube.com/watch?v=ZIvWrKYdMQE', info: '出自專輯《跟著感覺走》' },
+      { artist: 'JOLIN 蔡依林', album: '《Pleasure》', yt: 'https://www.youtube.com/watch?v=j1TTQREaZMg', info: '本屆最大贏家，入圍 9 項' },
+      { artist: '楊世暄（三菜一湯）', album: '《普通著 Daily Diner》', yt: 'https://www.youtube.com/results?search_query=三菜一湯+普通著', info: '' },
+      { artist: '陳小霞', album: '《老翅膀》', yt: 'https://www.youtube.com/results?search_query=陳小霞+老翅膀', info: '同獲評審團獎' },
+      { artist: '陳嫺靜', album: '《如果每天都可以 happy happy 誰想要sad:))》', yt: 'https://www.youtube.com/results?search_query=陳嫺靜+如果每天都可以', info: '最強黑馬' },
+      { artist: 'aMEI', album: '《我的存在就是愛你》', yt: 'https://www.youtube.com/results?search_query=aMEI+我的存在就是愛你', info: '' },
+      { artist: 'A-Lin', album: '《幸福在歌唱》', yt: 'https://www.youtube.com/results?search_query=A-Lin+幸福在歌唱', info: '電影《陽光女子合唱團》主題曲' },
+    ]
+  },
+  {
+    id: 'best_female',
+    name: '最佳華語女歌手獎',
+    icon: '👑',
+    color: '#e060a0',
+    bg: '#fff0f7',
+    nominees: [
+      { artist: '洪佩瑜', album: '《開》', yt: 'https://www.youtube.com/watch?v=7sfl70aTK58', info: '2025 年度實力派代表作' },
+      { artist: 'JOLIN 蔡依林', album: '《Pleasure》', yt: 'https://www.youtube.com/watch?v=j1TTQREaZMg', info: '第五度爭歌后' },
+      { artist: '彭佳慧', album: '《完整的大人》', yt: 'https://www.youtube.com/results?search_query=彭佳慧+完整的大人', info: '金曲歌后再度入圍' },
+      { artist: '陳嫺靜', album: '《如果每天都可以 happy happy 誰想要sad:))》', yt: 'https://www.youtube.com/results?search_query=陳嫺靜+如果每天都可以', info: '新生代饒舌才女' },
+      { artist: '劉艾立', album: '《雙魚宮》', yt: 'https://www.youtube.com/results?search_query=劉艾立+雙魚宮', info: '' },
+      { artist: '單依純', album: '《純妹妹》', yt: 'https://www.youtube.com/watch?v=-JcC8p56LAg', info: '中國新生代人氣女聲' },
+    ]
+  },
+  {
+    id: 'best_male',
+    name: '最佳華語男歌手獎',
+    icon: '🎤',
+    color: '#5860e0',
+    bg: '#f0f0ff',
+    nominees: [
+      { artist: '張震嶽', album: '《跟著感覺走》', yt: 'https://www.youtube.com/watch?v=1rau1QDJ9tQ', info: '強勢回歸，City Pop 風格' },
+      { artist: '盧廣仲', album: '《HeartBreakFast 傷心早餐店》', yt: 'https://www.youtube.com/watch?v=i5YRIjxyJP8', info: '全情歌專輯，呼聲最高' },
+      { artist: '周湯豪', album: '《LOVE RAGE HOPE》', yt: 'https://www.youtube.com/watch?v=RWjPZLQGbmA', info: 'New Metal 曲風貫徹，首度入圍歌王' },
+      { artist: '裘德', album: '《離開銀色荒原》', yt: 'https://www.youtube.com/watch?v=khi5hYxGVX8', info: '入圍 6 項，橫掃技術獎提名' },
+      { artist: 'Gummy B', album: '《更好》', yt: 'https://www.youtube.com/results?search_query=Gummy+B+更好', info: '風格橫跨搖滾與饒舌' },
+    ]
+  },
+  {
+    id: 'best_female_tai',
+    name: '最佳台語女歌手獎',
+    icon: '🌸',
+    color: '#e07850',
+    bg: '#fff5f0',
+    nominees: [
+      { artist: '鄭宜農', album: '《圓缺》', yt: 'https://www.youtube.com/results?search_query=鄭宜農+圓缺', info: '前屆金曲歌后' },
+      { artist: '陳怡婷', album: '', yt: 'https://www.youtube.com/results?search_query=陳怡婷+台語', info: '' },
+      { artist: '秀蘭瑪雅', album: '', yt: 'https://www.youtube.com/results?search_query=秀蘭瑪雅', info: '台語天后' },
+      { artist: '白冰冰', album: '《喝酒講酒話》', yt: 'https://www.youtube.com/results?search_query=白冰冰+喝酒講酒話', info: '睽違 28 年再度入圍，最大驚喜' },
+      { artist: 'PiA 吳蓓雅', album: '', yt: 'https://www.youtube.com/results?search_query=PiA吳蓓雅', info: '' },
+    ]
+  },
+  {
+    id: 'best_male_tai',
+    name: '最佳台語男歌手獎',
+    icon: '🎸',
+    color: '#40a070',
+    bg: '#f0fff5',
+    nominees: [
+      { artist: '蕭煌奇', album: '《做一個惜情軟心的人》', yt: 'https://www.youtube.com/results?search_query=蕭煌奇+做一個惜情軟心的人', info: '台語實力派天王' },
+      { artist: '吳永吉', album: '《褪褲lān的兄弟》', yt: 'https://www.youtube.com/results?search_query=吳永吉+褪褲', info: '' },
+      { artist: '曾瑋中', album: '', yt: 'https://www.youtube.com/results?search_query=曾瑋中+台語', info: '' },
+      { artist: '周自從', album: '', yt: 'https://www.youtube.com/results?search_query=周自從', info: '' },
+      { artist: 'CJ MiT', album: '《我說》', yt: 'https://www.youtube.com/results?search_query=CJ+MiT+我說', info: '同時入圍最佳新人獎' },
+    ]
+  },
+  {
+    id: 'best_band',
+    name: '最佳樂團獎',
+    icon: '🎵',
+    color: '#9840c0',
+    bg: '#f8f0ff',
+    nominees: [
+      { artist: '落日飛車', album: '《QUIT QUIETLY》', yt: 'https://www.youtube.com/results?search_query=落日飛車+QUIT+QUIETLY', info: '同入圍年度專輯獎' },
+      { artist: '告五人', album: '', yt: 'https://www.youtube.com/results?search_query=告五人', info: '人氣台灣樂團' },
+      { artist: '老王樂隊', album: '', yt: 'https://www.youtube.com/results?search_query=老王樂隊', info: '' },
+      { artist: 'Tizzy Bac', album: '', yt: 'https://www.youtube.com/results?search_query=Tizzy+Bac', info: '獨立搖滾老將' },
+      { artist: '漂流出口', album: '《Masonolay i Cepo\'》', yt: 'https://www.youtube.com/results?search_query=漂流出口', info: '同入圍最佳原住民語專輯' },
+      { artist: 'icyball 冰球樂團', album: '', yt: 'https://www.youtube.com/results?search_query=icyball冰球樂團', info: '' },
+      { artist: '甜約翰 Sweet John', album: '', yt: 'https://www.youtube.com/results?search_query=甜約翰+Sweet+John', info: '' },
+    ]
+  },
+  {
+    id: 'best_new',
+    name: '最佳新人獎',
+    icon: '🌱',
+    color: '#30b090',
+    bg: '#f0fffb',
+    nominees: [
+      { artist: '陳嫺靜', album: '《如果每天都可以 happy happy 誰想要sad:))》', yt: 'https://www.youtube.com/results?search_query=陳嫺靜+如果每天都可以', info: '雙料入圍（歌手 + 新人）' },
+      { artist: '高真 TRU', album: '', yt: 'https://www.youtube.com/results?search_query=高真TRU', info: '' },
+      { artist: '163braces', album: '', yt: 'https://www.youtube.com/results?search_query=163braces', info: '' },
+      { artist: '陳以諾 Sarah', album: '《慢花誌》', yt: 'https://www.youtube.com/results?search_query=陳以諾Sarah+慢花誌', info: '同入圍最佳客語歌手' },
+      { artist: 'CJ MiT', album: '《我說》', yt: 'https://www.youtube.com/results?search_query=CJ+MiT+我說', info: '同入圍最佳台語男歌手' },
+      { artist: 'JOYCE 就以斯', album: '', yt: 'https://www.youtube.com/results?search_query=JOYCE就以斯', info: '' },
+    ]
+  },
+  {
+    id: 'best_group',
+    name: '最佳演唱組合獎',
+    icon: '🎭',
+    color: '#c05080',
+    bg: '#fff0f5',
+    nominees: [
+      { artist: '頑童 MJ116', album: '《OGS》', yt: 'https://www.youtube.com/results?search_query=頑童MJ116+OGS', info: '同入圍最佳華語專輯' },
+      { artist: 'GENBLUE 幻藍小熊', album: '', yt: 'https://www.youtube.com/results?search_query=GENBLUE幻藍小熊', info: '' },
+      { artist: '凹與山', album: '', yt: 'https://www.youtube.com/results?search_query=凹與山', info: '' },
+      { artist: '椅子樂團', album: '', yt: 'https://www.youtube.com/results?search_query=椅子樂團', info: '' },
+      { artist: 'Dac & 鄭昭元 ZAOYUAN', album: '', yt: 'https://www.youtube.com/results?search_query=Dac+鄭昭元', info: '' },
+    ]
+  },
+];
+
+// ── 3D 音符動畫 ──────────────────────────────────────
+const NOTE_CHARS = ['♪', '♫', '♬', '♩', '𝄞', '𝄢'];
+const NOTE_COLORS = [
+  '#c8a0e8aa', '#f0a0c8aa', '#a0c8f0aa',
+  '#f0d080aa', '#a0e0c0aa', '#f0b0a0aa',
+  '#d0b0f8aa', '#f8b0d0aa',
+];
+
+function createNotes() {
+  const stage = document.getElementById('notes-stage');
+  for (let i = 0; i < 38; i++) {
+    const el = document.createElement('div');
+    el.className = 'note';
+    el.textContent = NOTE_CHARS[Math.floor(Math.random() * NOTE_CHARS.length)];
+    el.style.left = `${Math.random() * 100}%`;
+    el.style.top = `${50 + Math.random() * 55}%`;
+    el.style.fontSize = `${18 + Math.random() * 36}px`;
+    el.style.color = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
+    const dur = 5 + Math.random() * 9;
+    el.style.animationDuration = `${dur}s`;
+    el.style.animationDelay = `${-Math.random() * dur}s`;
+    stage.appendChild(el);
+  }
+}
+
+// ── 渲染預測卡片 ──────────────────────────────────────
+const selections = {};
+
+window.select = function(catId, idx) {
+  const prev = selections[catId];
+  if (prev !== undefined) {
+    document.getElementById(`card-${catId}-${prev}`)?.classList.remove('selected');
+  }
+  if (prev === idx) {
+    delete selections[catId];
+  } else {
+    selections[catId] = idx;
+    document.getElementById(`card-${catId}-${idx}`)?.classList.add('selected');
+  }
+};
+
+function renderCategories() {
+  const container = document.getElementById('main-content');
+  CATEGORIES.forEach(cat => {
+    const section = document.createElement('section');
+    section.innerHTML = `
+      <div class="cat-header">
+        <div class="cat-icon" style="background:${cat.bg};color:${cat.color}">${cat.icon}</div>
+        <div>
+          <div class="cat-title">${cat.name}<span class="cat-count"> · ${cat.nominees.length} 位入圍</span></div>
+        </div>
+      </div>
+      <div class="nominees-grid" id="grid-${cat.id}">
+        ${cat.nominees.map((n, i) => `
+          <div class="nominee-card" id="card-${cat.id}-${i}" onclick="select('${cat.id}', ${i})" data-cat="${cat.id}" data-idx="${i}">
+            <div class="card-inner">
+              <div class="check-badge">✓</div>
+              <div class="artist-name">${n.artist}</div>
+              <div class="album-name">${n.album || ''}${n.info ? `<br><span style="color:#c0b0d0;font-size:11px">${n.info}</span>` : ''}</div>
+              ${n.yt
+                ? `<button class="yt-link" onclick="event.stopPropagation(); openYT('${n.yt}', '${n.artist} ${n.album}')">
+                    <span class="yt-icon"></span>收聽作品
+                  </button>`
+                : `<span class="no-yt">無 YT 連結</span>`
+              }
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(section);
+  });
+}
+
+// ── YouTube Modal ────────────────────────────────────
+window.openYT = function(url, title) {
+  const m = url.match(/[?&]v=([^&]+)/);
+  if (!m) { window.open(url, '_blank'); return; }
+  const vid = m[1];
+  const ytUrl = `https://www.youtube.com/watch?v=${vid}`;
+  const cleanTitle = title.replace(/《|》/g, '');
+  document.getElementById('yt-title').textContent = cleanTitle;
+  document.getElementById('yt-body').innerHTML = `
+    <a href="${ytUrl}" target="_blank" rel="noopener" class="yt-thumb-wrap">
+      <img src="https://img.youtube.com/vi/${vid}/hqdefault.jpg"
+           onerror="this.style.display='none';this.parentElement.style.minHeight='180px'"
+           alt="${cleanTitle}">
+      <div class="yt-play-overlay">
+        <div class="yt-play-btn"><div class="yt-play-triangle"></div></div>
+      </div>
+    </a>
+    <a href="${ytUrl}" target="_blank" rel="noopener" class="yt-open-btn">▶ 前往 YouTube 觀看</a>
+  `;
+  document.getElementById('yt-modal').classList.add('open');
+};
+
+window.closeYT = function() {
+  document.getElementById('yt-body').innerHTML = '';
+  document.getElementById('yt-modal').classList.remove('open');
+};
+
+// ESC 鍵關閉
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeYT(); });
+
+// ── 狀態 ─────────────────────────────────────────────
+let myName = '';
+let latestDB = [];
+
+// ── 送出預測 ──────────────────────────────────────────
+window.submitPrediction = async function() {
+  myName = document.getElementById('username').value.trim();
+  if (!myName) { showToast('❗ 請先輸入你的名字'); return; }
+
+  const missing = CATEGORIES.filter(c => selections[c.id] === undefined);
+  if (missing.length > 0) {
+    showToast(`還有 ${missing.length} 個獎項尚未選擇`);
+    document.getElementById(`grid-${missing[0].id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  const key = myName.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+  const entry = { name: myName, time: Date.now() };
+  CATEGORIES.forEach(cat => {
+    entry[cat.id] = cat.nominees[selections[cat.id]].artist;
+  });
+
+  try {
+    await setDoc(doc(colRef, key || 'user_' + Date.now()), entry);
+    showToast('🎉 預測已送出！大家都看得到～');
+    setTimeout(() => document.getElementById('leaderboard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
+  } catch(e) {
+    showToast('⚠️ 送出失敗，請確認網路連線');
+  }
+};
+
+// ── 刪除自己的預測 ────────────────────────────────────
+window.deleteEntry = async function(name) {
+  if (!confirm(`確定要刪除「${name}」的預測嗎？`)) return;
+  const key = name.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+  try {
+    await deleteDoc(doc(colRef, key));
+    showToast('🗑 已刪除預測');
+  } catch(e) {
+    showToast('⚠️ 刪除失敗');
+  }
+};
+
+// ── 排行榜渲染 ────────────────────────────────────────
+function renderLeaderboard() {
+  const data = latestDB;
+  const thead = document.getElementById('lb-thead');
+  const tbody  = document.getElementById('lb-tbody');
+  document.getElementById('lb-count').textContent = data.length ? `· ${data.length} 人參與` : '';
+
+  if (data.length === 0) {
+    thead.innerHTML = '';
+    tbody.innerHTML = '<tr><td colspan="99" style="text-align:center;color:#c0b0d8;padding:36px;font-size:14px">🎵 還沒有人送出預測，快來第一個！</td></tr>';
+    return;
+  }
+
+  thead.innerHTML = `<tr>
+    <th>#</th>
+    <th>名字</th>
+    ${CATEGORIES.map(c => `<th>${c.icon} ${c.name.replace('最佳', '').replace('獎', '')}</th>`).join('')}
+    <th>時間</th>
+    <th></th>
+  </tr>`;
+
+  const sorted = [...data].sort((a, b) => a.time - b.time);
+  const SYM = ['🥇', '🥈', '🥉'];
+
+  tbody.innerHTML = sorted.map((row, i) => {
+    const isMe = row.name.toLowerCase() === myName.toLowerCase();
+    const timeStr = new Date(row.time).toLocaleString('zh-TW', { hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const delBtn = isMe
+      ? `<td><button onclick="deleteEntry('${row.name.replace(/'/g,"\\'")}')"\
+           style="background:none;border:1.5px solid #f0c0d8;color:#d06090;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑 刪除</button></td>`
+      : '<td></td>';
+    return `<tr style="${isMe ? 'background:#f5ecff;' : ''}">
+      <td style="font-weight:700;color:#9a6acc">${SYM[i] || i + 1}</td>
+      <td><b>${esc(row.name)}</b>${isMe ? ' <span style="font-size:11px;color:#c090e0">← 你</span>' : ''}</td>
+      ${CATEGORIES.map(c => `<td>${row[c.id] || '—'}</td>`).join('')}
+      <td style="color:#c0b0d0;font-size:11px;white-space:nowrap">${timeStr}</td>
+      ${delBtn}
+    </tr>`;
+  }).join('');
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Toast ────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── 截止時間邏輯 ─────────────────────────────────────
+const DEADLINE = new Date('2026-06-27T19:00:00+08:00');
+
+function isLocked() { return Date.now() >= DEADLINE.getTime(); }
+
+function applyLockState() {
+  const locked = isLocked();
+  // 鎖定所有卡片
+  document.querySelectorAll('.nominee-card').forEach(c => c.classList.toggle('locked', locked));
+  // 鎖定輸入與按鈕
+  const input = document.getElementById('username');
+  const btn   = document.getElementById('submit-btn');
+  const hint  = document.getElementById('submit-hint');
+  if (input) input.disabled = locked;
+  if (btn)   btn.disabled   = locked;
+  if (hint && locked) hint.textContent = '預測已截止，典禮開始了！';
+  // 顯示截止 banner
+  document.getElementById('deadline-banner')?.classList.toggle('show', locked);
+}
+
+function updateCountdown() {
+  const wrap = document.getElementById('countdown-wrap');
+  if (!wrap) return;
+  const diff = DEADLINE.getTime() - Date.now();
+
+  if (diff <= 0) {
+    wrap.innerHTML = '<div style="font-size:15px;font-weight:800;color:#d04890;padding:8px 0">🔒 預測已截止</div>';
+    applyLockState();
+    return;
+  }
+
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+
+  wrap.innerHTML = [
+    [d, '天'], [h, '時'], [m, '分'], [s, '秒']
+  ].map(([n, l]) => `
+    <div class="cd-block">
+      <span class="cd-num">${String(n).padStart(2,'0')}</span>
+      <div class="cd-label">${l}</div>
+    </div>
+  `).join('');
+}
+
+// ── 即時監聽 Firestore ────────────────────────────────
+onSnapshot(query(colRef, orderBy('time')), (snap) => {
+  latestDB = snap.docs.map(d => d.data());
+  renderLeaderboard();
+});
+
+// ── 初始化 ───────────────────────────────────────────
+createNotes();
+renderCategories();
+applyLockState();
+updateCountdown();
+setInterval(updateCountdown, 1000);
+</script>
+</body>
+</html>
