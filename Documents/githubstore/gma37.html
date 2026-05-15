@@ -1323,7 +1323,16 @@ function renderLeaderboard() {
     <th></th>
   </tr>`;
 
-  const sorted = [...data].sort((a, b) => a.time - b.time);
+  // 同名合併，保留最新一筆
+  const seen = new Map();
+  data.forEach(row => {
+    const key = row.name.trim().toLowerCase();
+    if (!seen.has(key) || row.time > seen.get(key).time) seen.set(key, row);
+  });
+  const deduped = [...seen.values()];
+  document.getElementById('lb-count').textContent = deduped.length ? `· ${deduped.length} 人參與` : '';
+
+  const sorted = deduped.sort((a, b) => a.time - b.time);
   const SYM = ['🥇', '🥈', '🥉'];
 
   tbody.innerHTML = sorted.map((row, i) => {
