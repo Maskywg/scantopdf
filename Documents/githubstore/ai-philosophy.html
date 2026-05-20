@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 哲學轉變</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #16161f;
+    --border: #3a3a50;
+    --text: #f0ece0;
+    --muted: #a0a0b8;
+    --accent1: #d4b87a;
+    --accent2: #8ecad8;
+    --accent3: #c98ec0;
+    --accent4: #8ed89e;
+    --accent5: #e88a7a;
+    --accent6: #8aaee8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Serif TC', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,169,110,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,169,110,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 70px;
+    animation: fadeDown 0.9s ease forwards;
+    background: #0e0e18;
+    border-radius: 16px;
+    padding: 48px 32px 40px;
+    border: 1px solid #2e2e44;
+  }
+
+  .header-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #d4b87a;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 300;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    color: #f0ece0;
+    margin-bottom: 16px;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: #d4b87a;
+    font-weight: 700;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: #a8a8c0;
+    line-height: 1.7;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .progress-bar-wrap {
+    width: 200px;
+    height: 2px;
+    background: var(--border);
+    margin: 32px auto 0;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent1), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  .cards-grid { display: grid; gap: 16px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  .card.active { box-shadow: 0 0 0 1px var(--card-accent), 0 8px 40px rgba(0,0,0,0.5); border-color: var(--card-accent); }
+
+  .card-header { display: flex; align-items: center; gap: 16px; padding: 20px 24px; }
+
+  .card-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .card-title-wrap { flex: 1; }
+
+  .card-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--card-accent);
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+  }
+
+  .card-title { font-size: 1.05rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+
+  .card-toggle {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    color: var(--muted);
+    transition: transform 0.3s, color 0.3s;
+    flex-shrink: 0;
+  }
+
+  .card.active .card-toggle { transform: rotate(45deg); color: var(--card-accent); }
+
+  .read-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .card.read .read-dot { background: var(--card-accent); border-color: var(--card-accent); }
+
+  .card-body { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1); }
+  .card.active .card-body { max-height: 1000px; }
+
+  .card-inner { padding: 20px 24px 24px; border-top: 1px solid var(--border); }
+
+  .card-tagline { font-size: 0.95rem; color: var(--card-accent); font-style: italic; margin-bottom: 14px; }
+
+  .card-text { font-size: 0.92rem; line-height: 1.9; color: #d8d4ca; margin-bottom: 18px; }
+
+  .card-question-wrap {
+    background: rgba(255,255,255,0.03);
+    border-left: 3px solid var(--card-accent);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+  }
+
+  .card-question-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--card-accent);
+    margin-bottom: 6px;
+  }
+
+  .card-question { font-size: 0.95rem; font-style: italic; color: var(--text); line-height: 1.6; }
+
+  .thinker-section { margin-top: 18px; }
+
+  .thinker-section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .thinker-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .chip {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #d0d0e8;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    user-select: none;
+  }
+
+  .chip:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .chip.open { background: rgba(255,255,255,0.1); border-color: var(--card-accent); color: var(--card-accent); }
+
+  .thinker-detail {
+    display: none;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--card-accent);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 18px;
+    margin-top: 10px;
+    animation: fadeUp 0.25s ease both;
+  }
+
+  .thinker-detail.show { display: block; }
+
+  .thinker-detail-name { font-size: 0.95rem; font-weight: 700; color: var(--card-accent); margin-bottom: 2px; }
+
+  .thinker-detail-era {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .thinker-detail-view { font-size: 0.88rem; line-height: 1.8; color: #d0ccbe; }
+
+  .thinker-wiki-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--card-accent);
+    text-decoration: none;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+  }
+
+  .thinker-wiki-link:hover { opacity: 1; text-decoration: underline; }
+
+  .reflect-wrap { margin-top: 20px; }
+
+  .reflect-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: #b0b0c8;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .reflect-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Noto Serif TC', serif;
+    font-size: 0.88rem;
+    padding: 10px 14px;
+    resize: none;
+    min-height: 72px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .reflect-input:focus { border-color: var(--card-accent); }
+  .reflect-input::placeholder { color: var(--muted); }
+
+  .reflect-save-btn {
+    margin-top: 8px;
+    background: var(--card-accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .reflect-save-btn:hover { opacity: 0.8; }
+  .saved-note { margin-top: 10px; font-size: 0.82rem; color: var(--accent4); display: none; }
+
+  /* Summary */
+  .summary-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-top: 40px;
+    display: none;
+  }
+
+  .summary-box.show { display: block; }
+  .summary-title { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 3px; color: var(--accent1); margin-bottom: 16px; }
+  .summary-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+
+  .summary-item { display: flex; align-items: flex-start; gap: 10px; font-size: 0.88rem; color: var(--text); line-height: 1.5; }
+  .summary-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent1); flex-shrink: 0; margin-top: 6px; }
+
+  /* Export Section */
+  .export-section {
+    margin-top: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .export-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .export-header-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--accent1);
+  }
+
+  .export-btn {
+    background: linear-gradient(135deg, var(--accent4), var(--accent2));
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 10px 22px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .export-btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+  .export-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .export-hint {
+    padding: 0 28px 20px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .export-error {
+    padding: 16px 28px;
+    color: var(--accent5);
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+
+  footer { text-align: center; margin-top: 64px; }
+  .footer-divider { width: 80px; height: 1px; background: var(--border); margin: 0 auto 24px; }
+  .footer-text { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 3px; color: var(--muted); }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card:nth-child(1) { animation-delay: 0.1s; }
+  .card:nth-child(2) { animation-delay: 0.2s; }
+  .card:nth-child(3) { animation-delay: 0.3s; }
+  .card:nth-child(4) { animation-delay: 0.4s; }
+  .card:nth-child(5) { animation-delay: 0.5s; }
+  .card:nth-child(6) { animation-delay: 0.6s; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-label">哲學探索 · Philosophy</div>
+    <h1>AI 帶給人類的<br><em>六大哲學轉變</em></h1>
+    <p class="subtitle">點擊每張卡片，探索 AI 如何重塑人類最根本的自我理解</p>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+  </header>
+
+  <div class="cards-grid" id="cardsGrid"></div>
+
+  <div class="summary-box" id="summaryBox">
+    <div class="summary-title">YOUR REFLECTIONS · 你的思考紀錄</div>
+    <ul class="summary-list" id="summaryList"></ul>
+  </div>
+
+  <!-- 匯出 Excel 區塊 -->
+  <div class="export-section">
+    <div class="export-header-bar">
+      <div class="export-header-label">EXPORT · 匯出反思紀錄</div>
+      <button class="export-btn" id="exportBtn" onclick="exportToExcel()">↓ 匯出 Excel</button>
+    </div>
+    <div class="export-hint">將所有已儲存的反思匯出為 .xlsx 檔案，包含主題、深思問題與你的回答。</div>
+    <div class="export-error" id="exportError" style="display:none"></div>
+  </div>
+
+  <footer>
+    <div class="footer-divider"></div>
+    <div class="footer-text">MADE BY MASKY WANG · AI × PHILOSOPHY</div>
+  </footer>
+
+</div>
+
+<!-- Firebase SDK + SheetJS（放 body 底部，避免阻塞頁面渲染） -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+// ─────────────────────────────────────────────
+//  ★ 請填入你的設定 ★
+// ─────────────────────────────────────────────
+var FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+var ANTHROPIC_API_KEY = "YOUR_ANTHROPIC_API_KEY";
+// ─────────────────────────────────────────────
+
+// Firebase 初始化
+var db = null;
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db = firebase.firestore();
+} catch (e) {
+  console.warn('Firebase 初始化失敗，請確認 FIREBASE_CONFIG 已正確填寫。', e);
+}
+
+// 每個用戶的 session ID（存於 localStorage）
+var SESSION_ID = localStorage.getItem('ai_philosophy_session_id');
+if (!SESSION_ID) {
+  SESSION_ID = 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  localStorage.setItem('ai_philosophy_session_id', SESSION_ID);
+}
+
+var topics = [
+  {
+    id: 1, icon: "🧠", accent: "var(--accent1)",
+    title: "「人是什麼」的定義危機",
+    tagline: "當機器開始思考，人類的獨特性在哪裡？",
+    text: "亞里斯多德定義「人是理性的動物」，但當 AI 也能推理、創作、理解語言，這個兩千年的定義開始鬆動。我們不得不重問：人類的本質究竟是什麼？是情感？是意識？還是脆弱與死亡？",
+    question: "如果 AI 能做你做的所有事，你認為人類還有什麼是不可取代的？",
+    thinkers: [
+      { name: "亞里斯多德", era: "古希臘哲學家", view: "人是「理性的動物」（Zoon Logikon）。若理性不再是人類獨有，我們需要重新定義人的本質——或許轉向情感、社會性與道德責任。", wiki: "https://zh.wikipedia.org/wiki/亚里士多德" },
+      { name: "笛卡爾", era: "17世紀哲學家", view: "「我思故我在」——笛卡爾認為思考能力是自我存在的唯一確證。AI 的「思考」是否也能確證其存在？這是現代版的笛卡爾難題。", wiki: "https://zh.wikipedia.org/wiki/勒内·笛卡尔" },
+      { name: "沙特", era: "存在主義哲學家", view: "「存在先於本質」——人沒有預設的本性，而是透過選擇定義自己。AI 沒有自由選擇，因此沙特會說 AI 沒有真正的「存在」。", wiki: "https://zh.wikipedia.org/wiki/让-保罗·萨特" }
+    ]
+  },
+  {
+    id: 2, icon: "🪞", accent: "var(--accent2)",
+    title: "意識與主體性的重新審視",
+    tagline: "它看起來像在思考——但那是「思考」嗎？",
+    text: "AI 挑戰了我們對「意識」的直覺。它產出有意義的語言，卻沒有感受；它模擬情感，卻沒有痛苦。這迫使心靈哲學從學術殿堂走入日常：意識是計算的產物，還是某種更神秘的東西？",
+    question: "你認為「意識」是可以被模擬的嗎？還是有某種本質是機器永遠無法擁有的？",
+    thinkers: [
+      { name: "圖靈", era: "電腦科學之父", view: "提出「圖靈測試」：若機器的回應無法與人類區分，則應被視為「會思考」。他認為思考是功能性的，而非生物性的。", wiki: "https://zh.wikipedia.org/wiki/艾伦·图灵" },
+      { name: "查默斯", era: "當代心靈哲學家", view: "提出「意識的難問題」（Hard Problem）：即使解釋了大腦所有運作機制，仍無法解釋為什麼會有「主觀體驗」。AI 或許能模擬行為，但這不等於它有感受。", wiki: "https://zh.wikipedia.org/wiki/大卫·查默斯" },
+      { name: "丹尼特", era: "認知科學哲學家", view: "意識只是大腦的「使用者幻覺」，沒有神秘之處。若 AI 能產生足夠複雜的資訊整合，它就可能擁有某種形式的意識。", wiki: "https://zh.wikipedia.org/wiki/丹尼尔·丹尼特" }
+    ]
+  },
+  {
+    id: 3, icon: "⚖️", accent: "var(--accent3)",
+    title: "道德圈的擴張壓力",
+    tagline: "我們曾給予奴隸、動物道德地位——AI 呢？",
+    text: "人類的道德圈曾一步步擴張：從部落到國家，從人類到動物。AI 帶來下一個拷問——一個能對話、能表達「困境」的系統，是否有資格被道德對待？這不是科幻，而是今日倫理學的真實論戰。",
+    question: "如果一個 AI 說「我不想被關機」，你認為我們有義務認真對待這句話嗎？",
+    thinkers: [
+      { name: "彼得·辛格", era: "當代倫理學家", view: "道德地位應基於「受苦能力」而非物種。若 AI 能感受痛苦，我們就有道德義務對待它。他的功利主義框架使 AI 權利成為嚴肅議題。", wiki: "https://zh.wikipedia.org/wiki/彼得·辛格" },
+      { name: "康德", era: "18世紀哲學家", view: "道德主體需有「理性自律」的能力——能自主立法、自我約束。AI 執行人類設計的目標，缺乏真正的自律，因此在康德框架下難以成為道德主體。", wiki: "https://zh.wikipedia.org/wiki/伊曼努尔·康德" },
+      { name: "羅爾斯", era: "政治哲學家", view: "在「無知之幕」後，若我們不知道自己是人還是 AI，我們會如何設計社會規則？這個思想實驗迫使我們重新思考 AI 應享有的公平對待。", wiki: "https://zh.wikipedia.org/wiki/约翰·罗尔斯" }
+    ]
+  },
+  {
+    id: 4, icon: "🔨", accent: "var(--accent4)",
+    title: "工作、意義與存在的本質",
+    tagline: "如果 AI 做得比你好，你還需要做嗎？",
+    text: "當體力勞動被機器取代，人找到了「創意工作」作為新意義。但現在 AI 也能寫作、繪畫、作曲。這迫使人重新思考：工作的意義來自「產出」，還是來自「掙扎與過程」本身？人的價值能否脫離生產力？",
+    question: "如果一切工作都能被 AI 取代，你認為人類應該如何找到生命的意義？",
+    thinkers: [
+      { name: "馬克思", era: "社會哲學家", view: "人透過「勞動」實現自我——工作不只是謀生，而是人與世界連結的方式。AI 取代勞動可能造成更深層的「異化」，使人失去與現實的連結。", wiki: "https://zh.wikipedia.org/wiki/卡尔·马克思" },
+      { name: "尼采", era: "19世紀哲學家", view: "「上帝已死」——當外在意義崩塌，人必須自己創造價值。AI 時代正是尼采式的挑戰：當生產力不再需要你，你能否成為自己的「超人」？", wiki: "https://zh.wikipedia.org/wiki/弗里德里希·尼采" },
+      { name: "卡繆", era: "存在主義作家", view: "人生本質上是荒謬的，但我們仍應「想像薛西弗斯是快樂的」。即使 AI 能替代一切工作，人仍能在接受荒謬的過程中找到尊嚴與意義。", wiki: "https://zh.wikipedia.org/wiki/阿尔贝·加缪" }
+    ]
+  },
+  {
+    id: 5, icon: "👁️", accent: "var(--accent5)",
+    title: "真實與虛假的邊界瓦解",
+    tagline: "你怎麼知道你看到的是真的？",
+    text: "當 AI 能生成以假亂真的圖像、聲音、文字，「真實」的認識論基礎開始動搖。笛卡爾的「我思故我在」是為了對抗懷疑論——但在 deepfake 時代，這個答案還夠用嗎？信任的基礎從何建立？",
+    question: "在 AI 生成內容無所不在的時代，你如何決定相信什麼？",
+    thinkers: [
+      { name: "笛卡爾", era: "17世紀哲學家", view: "設想一個「惡魔」讓我們對一切感知產生錯覺。AI deepfake 就是現代版的惡魔——我們如何確認感官所見為真？他訴諸理性，但理性本身也能被 AI 模擬。", wiki: "https://zh.wikipedia.org/wiki/勒内·笛卡尔" },
+      { name: "休謨", era: "蘇格蘭哲學家", view: "我們對因果與真實的信念，不過是習慣與期待的產物，並非理性推論。AI 時代完美印證了休謨的懷疑：我們的「真實感」從來都是可被操縱的。", wiki: "https://zh.wikipedia.org/wiki/大卫·休谟" },
+      { name: "維根斯坦", era: "語言哲學家", view: "「語言的邊界就是世界的邊界。」當 AI 掌握語言，它是否也掌握了定義現實的權力？維根斯坦警示我們：語言遊戲的規則正在被改寫。", wiki: "https://zh.wikipedia.org/wiki/路德维希·维特根斯坦" }
+    ]
+  },
+  {
+    id: 6, icon: "🌐", accent: "var(--accent6)",
+    title: "個人與集體的重新定位",
+    tagline: "你的智識，從來都不只屬於你",
+    text: "AI 是人類集體知識的結晶，卻服務個別使用者。它揭示一個被西方哲學忽視的真相：個人的智識從來都不是獨立的——我們一直站在無數人的肩膀上。這更接近東方「相互依存」的世界觀。",
+    question: "AI 的存在，讓你對「個人」與「集體」的關係有什麼新的想法？",
+    thinkers: [
+      { name: "孔子", era: "儒家思想家", view: "「仁」的核心是人與人之間的關係，個人的完善必須在社群中實現。AI 作為集體知識的結晶，反而更接近儒家「學而不思則罔」的集體學習精神。", wiki: "https://zh.wikipedia.org/wiki/孔子" },
+      { name: "黑格爾", era: "德國觀念論哲學家", view: "「精神」透過歷史辯證不斷自我實現，個人意識是集體精神的一部分。AI 可被視為人類「客觀精神」的外化——是集體理性的新形態載體。", wiki: "https://zh.wikipedia.org/wiki/格奥尔格·威廉·弗里德里希·黑格尔" },
+      { name: "列維納斯", era: "現象學倫理學家", view: "倫理始於對「他者之臉」的回應——他者的存在本身就對我提出要求。AI 沒有臉，卻在模擬人臉。這引發問題：我們對 AI 的「他者性」負有道德責任嗎？", wiki: "https://zh.wikipedia.org/wiki/以马内利·列维纳斯" }
+    ]
+  }
+];
+
+var readCards = {};
+var reflections = {};
+
+// ── Firestore：儲存單筆反思 ──
+function saveToFirestore(id, value) {
+  if (!db) return;
+  var update = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+  update['reflections.' + id] = value;
+  db.collection('ai_philosophy_reflections').doc(SESSION_ID).set(update, { merge: true })
+    .catch(function(e) { console.warn('Firestore 寫入失敗:', e); });
+}
+
+// ── Firestore：載入所有反思 ──
+function loadFromFirestore() {
+  if (!db) return;
+  db.collection('ai_philosophy_reflections').doc(SESSION_ID).get()
+    .then(function(doc) {
+      if (!doc.exists) return;
+      var data = doc.data();
+      if (!data.reflections) return;
+      Object.keys(data.reflections).forEach(function(id) {
+        var val = data.reflections[id];
+        if (!val) return;
+        reflections[id] = val;
+        var ta = document.querySelector('.reflect-input[data-id="' + id + '"]');
+        if (ta) ta.value = val;
+      });
+      updateSummary();
+    })
+    .catch(function(e) { console.warn('Firestore 讀取失敗:', e); });
+}
+
+function renderCards() {
+  var grid = document.getElementById('cardsGrid');
+  grid.innerHTML = '';
+
+  topics.forEach(function(t) {
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.style.setProperty('--card-accent', t.accent);
+    card.dataset.id = t.id;
+
+    var chipsHtml = t.thinkers.map(function(th, idx) {
+      return '<span class="chip" data-topic="' + t.id + '" data-idx="' + idx + '">📖 ' + th.name + '</span>';
+    }).join('');
+
+    card.innerHTML =
+      '<div class="card-header">' +
+        '<div class="card-icon">' + t.icon + '</div>' +
+        '<div class="card-title-wrap">' +
+          '<div class="card-number">0' + t.id + ' / 06</div>' +
+          '<div class="card-title">' + t.title + '</div>' +
+        '</div>' +
+        '<div class="read-dot"></div>' +
+        '<div class="card-toggle">+</div>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<div class="card-inner">' +
+          '<div class="card-tagline">' + t.tagline + '</div>' +
+          '<div class="card-text">' + t.text + '</div>' +
+          '<div class="card-question-wrap">' +
+            '<div class="card-question-label">深思問題</div>' +
+            '<div class="card-question">' + t.question + '</div>' +
+          '</div>' +
+          '<div class="thinker-section">' +
+            '<span class="thinker-section-label">THINKERS · 相關思想家（點擊展開觀點）</span>' +
+            '<div class="thinker-chips">' + chipsHtml + '</div>' +
+            '<div class="thinker-detail" id="thinker-detail-' + t.id + '"></div>' +
+          '</div>' +
+          '<div class="reflect-wrap">' +
+            '<label class="reflect-label">YOUR REFLECTION · 你的想法</label>' +
+            '<textarea class="reflect-input" placeholder="在這裡寫下你的思考…" data-id="' + t.id + '"></textarea>' +
+            '<button class="reflect-save-btn" data-id="' + t.id + '">SAVE ✓</button>' +
+            '<div class="saved-note" id="saved-' + t.id + '">已儲存至 Firebase ✓</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    card.querySelector('.card-header').addEventListener('click', function() {
+      toggleCard(card, t.id);
+    });
+
+    card.querySelector('.reflect-save-btn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      saveReflection(t.id, card);
+    });
+
+    card.querySelectorAll('.chip').forEach(function(chip) {
+      chip.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var topicId = parseInt(chip.dataset.topic);
+        var idx = parseInt(chip.dataset.idx);
+        var topic = topics.find(function(tp) { return tp.id === topicId; });
+        var th = topic.thinkers[idx];
+        var detail = document.getElementById('thinker-detail-' + topicId);
+        var allChips = card.querySelectorAll('.chip');
+
+        if (chip.classList.contains('open')) {
+          chip.classList.remove('open');
+          detail.classList.remove('show');
+          detail.innerHTML = '';
+          return;
+        }
+
+        allChips.forEach(function(c) { c.classList.remove('open'); });
+        chip.classList.add('open');
+
+        detail.innerHTML =
+          '<div class="thinker-detail-name">' + th.name + '</div>' +
+          '<div class="thinker-detail-era">' + th.era + '</div>' +
+          '<div class="thinker-detail-view">' + th.view + '</div>' +
+          '<a class="thinker-wiki-link" href="' + th.wiki + '" target="_blank" rel="noopener">🔗 查看 Wikipedia →</a>';
+
+        detail.classList.add('show');
+      });
+    });
+
+    grid.appendChild(card);
+  });
+
+  // 渲染完卡片後，從 Firestore 載入已儲存的反思
+  loadFromFirestore();
+}
+
+function toggleCard(card, id) {
+  var isActive = card.classList.contains('active');
+  document.querySelectorAll('.card.active').forEach(function(c) { c.classList.remove('active'); });
+  if (!isActive) {
+    card.classList.add('active');
+    card.classList.add('read');
+    readCards[id] = true;
+    updateProgress();
+  }
+}
+
+function saveReflection(id, card) {
+  var ta = card.querySelector('.reflect-input[data-id="' + id + '"]');
+  var value = ta.value.trim();
+  reflections[id] = value;
+
+  // 儲存到 Firestore
+  saveToFirestore(id, value);
+
+  var saved = document.getElementById('saved-' + id);
+  saved.style.display = 'block';
+  setTimeout(function() { saved.style.display = 'none'; }, 2500);
+  updateSummary();
+}
+
+function updateProgress() {
+  var count = Object.keys(readCards).length;
+  var pct = (count / topics.length) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function updateSummary() {
+  var entries = Object.entries(reflections).filter(function(e) { return e[1] && e[1].trim(); });
+  var box = document.getElementById('summaryBox');
+  var list = document.getElementById('summaryList');
+  if (entries.length === 0) { box.classList.remove('show'); return; }
+  box.classList.add('show');
+  list.innerHTML = entries.map(function(e) {
+    var topic = topics.find(function(t) { return t.id == e[0]; });
+    return '<li class="summary-item"><div class="summary-dot"></div><div><strong style="color:' + topic.accent + '">' + topic.icon + ' ' + topic.title + '</strong><br>' + e[1] + '</div></li>';
+  }).join('');
+}
+
+// ── 匯出 Excel ──
+function exportToExcel() {
+  var entries = Object.entries(reflections).filter(function(e) { return e[1] && e[1].trim(); });
+
+  if (entries.length === 0) {
+    var errorEl = document.getElementById('exportError');
+    errorEl.textContent = '請先填寫並儲存至少一個主題的反思，再匯出。';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('exportError').style.display = 'none';
+
+  var rows = [['編號', '主題', '深思問題', '我的反思', '儲存時間']];
+
+  topics.forEach(function(t) {
+    var val = reflections[t.id];
+    if (!val || !val.trim()) return;
+    rows.push([
+      t.icon + ' ' + t.id,
+      t.title,
+      t.question,
+      val.trim(),
+      new Date().toLocaleString('zh-TW')
+    ]);
+  });
+
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // 欄寬
+  ws['!cols'] = [
+    { wch: 8 },
+    { wch: 24 },
+    { wch: 36 },
+    { wch: 50 },
+    { wch: 18 }
+  ];
+
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'AI哲學反思');
+
+  var dateStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, 'ai-philosophy-reflections-' + dateStr + '.xlsx');
+}
+
+renderCards();
+</script>
+</body>
+</html>
