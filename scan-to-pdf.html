@@ -611,9 +611,14 @@ body {
       </div>
     </div>
 
-    <button class="btn btn-success" id="gen-btn" onclick="generatePDF()" style="margin-top:4px">
-      ⬇️ 產生並下載 PDF
-    </button>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-success" id="gen-btn" onclick="generatePDF()" style="flex:2">
+        ⬇️ 產生並下載 PDF
+      </button>
+      <button class="btn btn-secondary" id="txt-btn" onclick="exportTxt()" style="flex:1">
+        📄 匯出 .txt
+      </button>
+    </div>
 
     <div style="height:20px"></div>
   </div>
@@ -817,7 +822,10 @@ function renderPagesList() {
           ${statusIcon} ${statusText}
         </div>
         ${textPreview ? `<div class="page-text-preview">${escapeHTML(textPreview)}…</div>` : ''}
-        ${p.status === 'error' ? `<button class="btn btn-sm btn-secondary" style="margin-top:6px" onclick="retryOCR(${i})">🔁 重試 OCR</button>` : ''}
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          ${p.status === 'done' ? `<button class="btn btn-sm btn-secondary" onclick="copyPageText(${i})">📋 複製文字</button>` : ''}
+          ${p.status === 'error' ? `<button class="btn btn-sm btn-secondary" onclick="retryOCR(${i})">🔁 重試 OCR</button>` : ''}
+        </div>
       </div>
       <button class="del-page-btn" onclick="deletePage(${i})">✕</button>
     </div>`;
@@ -1047,6 +1055,40 @@ function showToast(msg, duration = 2200) {
   t.classList.add('show');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+async function copyPageText(idx) {
+  const text = pages[idx]?.text?.trim();
+  if (!text) { showToast('該頁尚無辨識文字'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(`✅ 第 ${idx + 1} 頁文字已複製`);
+  } catch {
+    // 舊瀏覽器 fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(`✅ 第 ${idx + 1} 頁文字已複製`);
+  }
+}
+
+function exportTxt() {
+  const done = pages.filter(p => p.status === 'done');
+  if (!done.length) { showToast('尚無辨識完成的頁面'); return; }
+  const content = pages.map((p, i) =>
+    `===== 第 ${i + 1} 頁 =====\n${(p.text || '（尚未辨識）').trim()}`
+  ).join('\n\n');
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+  a.href = url; a.download = `scan_${ts}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ .txt 已下載');
 }
 
 function escapeHTML(str) {
