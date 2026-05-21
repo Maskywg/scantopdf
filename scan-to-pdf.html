@@ -987,8 +987,18 @@ async function generatePDF() {
     }
 
     const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-    pdf.save(`scan_${ts}.pdf`);
-    showToast('✅ PDF 已下載！');
+    const filename = `scan_${ts}.pdf`;
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) {
+      // iOS Safari 不支援 download attribute，改開新分頁
+      // 使用者可點右上角分享 → 儲存到「檔案」
+      const blobUrl = pdf.output('bloburl');
+      window.open(blobUrl, '_blank');
+      showToast('✅ 已開啟 PDF，點分享→儲存到檔案', 4000);
+    } else {
+      pdf.save(filename);
+      showToast('✅ PDF 已下載！');
+    }
   } catch (e) {
     showToast('產生失敗：' + e.message);
   } finally {
