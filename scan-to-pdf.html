@@ -570,8 +570,12 @@ body {
   </div>
 
   <!-- Pages list view -->
-  <div class="view" id="pages-view">
-    <div id="pages-list"></div>
+  <div class="view" id="pages-view" style="flex-direction:column">
+    <div id="pages-list" style="flex:1;overflow-y:auto;padding:16px"></div>
+    <div id="pages-action-bar" style="display:none;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--surface2);gap:10px;flex-shrink:0">
+      <button class="btn btn-secondary" style="flex:1" onclick="copyAllText()">📋 複製全部文字</button>
+      <button class="btn btn-primary"   style="flex:1" onclick="exportTxt()">📄 匯出 .txt</button>
+    </div>
   </div>
 
   <!-- Generate / export view -->
@@ -808,6 +812,10 @@ function renderPagesList() {
       </div>`;
     return;
   }
+  const bar = document.getElementById('pages-action-bar');
+  const hasText = pages.some(p => p.status === 'done' && p.text?.trim());
+  bar.style.display = hasText ? 'flex' : 'none';
+
   list.innerHTML = pages.map((p, i) => {
     const statusIcon = p.status === 'done' ? '✅' : p.status === 'processing' ? '⏳' : p.status === 'error' ? '❌' : '🔄';
     const statusText = p.status === 'done' ? 'OCR 完成' : p.status === 'processing' ? '辨識中…' : p.status === 'error' ? 'OCR 失敗（點重試）' : '等待辨識';
@@ -1055,6 +1063,23 @@ function showToast(msg, duration = 2200) {
   t.classList.add('show');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+async function copyAllText() {
+  const text = pages.map((p, i) =>
+    `===== 第 ${i + 1} 頁 =====\n${(p.text || '（尚未辨識）').trim()}`
+  ).join('\n\n');
+  if (!text.trim()) { showToast('尚無辨識文字'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✅ 全部文字已複製');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ 全部文字已複製');
+  }
 }
 
 async function copyPageText(idx) {
