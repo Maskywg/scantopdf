@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="掃描PDF">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>掃描轉 PDF</title>
+
+<link rel="apple-touch-icon" href="scan-pdf-icon.png">
+<link rel="manifest" id="manifest-placeholder">
+<script>
+const manifest = {
+  name: "掃描轉 PDF",
+  short_name: "掃描PDF",
+  start_url: "scan-to-pdf.html",
+  display: "standalone",
+  background_color: "#0f172a",
+  theme_color: "#0f172a",
+  icons: [
+    { src: "scan-pdf-icon.png", sizes: "192x192", type: "image/png" },
+    { src: "scan-pdf-icon.png", sizes: "512x512", type: "image/png" }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+document.getElementById('manifest-placeholder').href = URL.createObjectURL(blob);
+</script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #334155;
+  --accent: #6366f1;
+  --accent-glow: rgba(99,102,241,0.35);
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --radius: 16px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* ───── Header ───── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top, 12px));
+  background: var(--surface);
+  border-bottom: 1px solid var(--surface2);
+  flex-shrink: 0;
+  z-index: 10;
+}
+.header-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.header-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.page-badge {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ───── Main content ───── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* ───── View switching ───── */
+.view { display: none; height: 100%; flex-direction: column; }
+.view.active { display: flex; }
+
+/* ───── Camera view ───── */
+#camera-view {
+  position: relative;
+  background: #000;
+  align-items: center;
+  justify-content: center;
+}
+#video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.doc-frame {
+  position: absolute;
+  top: 10%;
+  left: 5%;
+  right: 5%;
+  bottom: 20%;
+  border: 2px solid rgba(99,102,241,0.7);
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
+}
+.doc-frame::before, .doc-frame::after,
+.doc-frame .corner-br, .doc-frame .corner-tl {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: var(--accent);
+  border-style: solid;
+}
+.doc-frame::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 6px 0 0 0; }
+.doc-frame::after  { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 6px 0 0; }
+.doc-frame .corner-br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 6px 0; }
+.doc-frame .corner-tl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 6px; }
+
+.camera-hint {
+  position: absolute;
+  top: calc(10% - 36px);
+  left: 0; right: 0;
+  text-align: center;
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+  padding: 0 16px;
+}
+.camera-controls {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 20px 24px calc(20px + var(--safe-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+}
+.shutter-btn {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid rgba(255,255,255,0.4);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+.shutter-btn::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #ccc;
+}
+.shutter-btn:active { transform: scale(0.93); }
+.cam-side-btn {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  color: #fff;
+}
+.cam-side-btn:active { opacity: 0.7; }
+
+/* ───── Preview view ───── */
+#preview-view {
+  background: #000;
+}
+#preview-canvas {
+  width: 100%;
+  flex: 1;
+  object-fit: contain;
+  display: block;
+}
+.preview-toolbar {
+  background: var(--surface);
+  padding: 12px 16px calc(12px + var(--safe-bottom));
+  display: flex;
+  gap: 10px;
+}
+.preview-toolbar .btn { flex: 1; }
+
+/* ───── Pages list view ───── */
+#pages-view {
+  padding: 16px;
+  gap: 12px;
+  overflow-y: auto;
+  flex-direction: column;
+  align-items: stretch;
+}
+.pages-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--muted);
+}
+.pages-empty .icon { font-size: 56px; }
+.pages-empty p { font-size: 15px; text-align: center; }
+.page-thumb {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  position: relative;
+}
+.page-thumb img {
+  width: 72px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+.page-thumb-info { flex: 1; min-width: 0; }
+.page-num { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.page-status {
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.page-text-preview {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.5;
+  max-height: 54px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.del-page-btn {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.15);
+  color: var(--danger);
+  border: none;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.ocr-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  animation: pulse 1s infinite;
+  background: var(--warning);
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ───── OCR progress ───── */
+.ocr-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  gap: 20px;
+}
+.ocr-overlay.active { display: flex; }
+.ocr-title { font-size: 18px; font-weight: 700; }
+.ocr-sub { font-size: 14px; color: var(--muted); text-align: center; }
+.progress-bar-wrap {
+  width: 100%;
+  max-width: 280px;
+  height: 8px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent), #a855f7);
+  transition: width 0.3s;
+  width: 0%;
+}
+.ocr-pct { font-size: 28px; font-weight: 800; color: var(--accent); }
+.ocr-lang-tag {
+  background: var(--accent);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ───── Lang selector ───── */
+.lang-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lang-chip {
+  background: var(--surface2);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text);
+}
+.lang-chip.selected {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.2);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ───── Settings panel ───── */
+.settings-panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 12px 16px 0;
+  display: none;
+}
+.settings-panel.open { display: block; }
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--surface2);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 14px; color: var(--muted); }
+.setting-value { font-size: 14px; font-weight: 500; }
+
+/* ───── Bottom bar ───── */
+.bottom-bar {
+  background: var(--surface);
+  border-top: 1px solid var(--surface2);
+  padding: 10px 16px calc(10px + var(--safe-bottom));
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ───── Buttons ───── */
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+.btn:active { opacity: 0.8; transform: scale(0.97); }
+.btn:disabled { opacity: 0.4; pointer-events: none; }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 16px var(--accent-glow);
+}
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+}
+.btn-danger {
+  background: rgba(239,68,68,0.15);
+  color: var(--danger);
+}
+.btn-success {
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
+}
+.btn-icon { padding: 13px; }
+.btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; }
+
+/* ───── Toast ───── */
+.toast {
+  position: fixed;
+  bottom: calc(80px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface2);
+  color: var(--text);
+  padding: 12px 20px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 200;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ───── Nav tabs ───── */
+.nav-tabs {
+  display: flex;
+  background: var(--bg);
+  border-top: 1px solid var(--surface2);
+  flex-shrink: 0;
+}
+.nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 8px calc(10px + var(--safe-bottom));
+  cursor: pointer;
+  transition: color 0.15s;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+.nav-tab .tab-icon { font-size: 22px; line-height: 1; }
+.nav-tab.active { color: var(--accent); }
+.nav-tab .badge {
+  background: var(--danger);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 10px;
+  padding: 1px 5px;
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 22px);
+}
+
+/* ───── Generate view ───── */
+#generate-view {
+  overflow-y: auto;
+  padding: 16px;
+  flex-direction: column;
+  gap: 16px;
+}
+.gen-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.gen-card h3 { font-size: 15px; margin-bottom: 12px; }
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface2);
+  font-size: 14px;
+}
+.summary-row:last-child { border-bottom: none; }
+.summary-val { color: var(--accent); font-weight: 600; }
+.quality-opts { display: flex; gap: 8px; }
+.quality-opt {
+  flex: 1;
+  background: var(--surface2);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  font-weight: 500;
+}
+.quality-opt.selected {
+  border-color: var(--accent);
+  background: rgba(99,102,241,0.15);
+  color: var(--accent);
+}
+.quality-opt .q-title { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+.quality-opt .q-sub { font-size: 11px; color: var(--muted); }
+.quality-opt.selected .q-sub { color: rgba(99,102,241,0.7); }
+
+/* ───── File input hidden ───── */
+#file-input { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <div class="header-title">📄 掃描轉 PDF</div>
+    <div class="header-sub" id="header-sub">相機對準文件拍照</div>
+  </div>
+  <div class="page-badge" id="page-count">0 頁</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Camera view -->
+  <div class="view active" id="camera-view">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="camera-overlay">
+      <div class="doc-frame">
+        <span class="corner-br"></span>
+        <span class="corner-tl"></span>
+      </div>
+      <div class="camera-hint">將文件置於框內，保持平整</div>
+    </div>
+    <div class="camera-controls">
+      <div class="cam-side-btn" onclick="openFilePicker()" title="從相簿選取">🖼️</div>
+      <div class="shutter-btn" onclick="capturePhoto()" id="shutter-btn"></div>
+      <div class="cam-side-btn" onclick="toggleCamera()" title="切換鏡頭">🔄</div>
+    </div>
+    <input type="file" id="file-input" accept="image/*" multiple onchange="handleFileInput(event)">
+  </div>
+
+  <!-- Preview view -->
+  <div class="view" id="preview-view">
+    <canvas id="preview-canvas"></canvas>
+    <div class="preview-toolbar">
+      <button class="btn btn-secondary" onclick="goToCamera()">↩ 重拍</button>
+      <button class="btn btn-primary" onclick="confirmCapture()" id="confirm-btn">✓ 加入 &amp; 辨識</button>
+    </div>
+  </div>
+
+  <!-- Pages list view -->
+  <div class="view" id="pages-view">
+    <div id="pages-list"></div>
+  </div>
+
+  <!-- Generate / export view -->
+  <div class="view" id="generate-view">
+    <div class="gen-card">
+      <h3>📋 掃描摘要</h3>
+      <div class="summary-row"><span>總頁數</span><span class="summary-val" id="gen-page-count">0 頁</span></div>
+      <div class="summary-row"><span>OCR 完成</span><span class="summary-val" id="gen-ocr-count">0 頁</span></div>
+      <div class="summary-row"><span>辨識語言</span><span class="summary-val" id="gen-lang-show">繁中＋英</span></div>
+    </div>
+
+    <div class="gen-card">
+      <h3>🖨️ 輸出品質</h3>
+      <div class="quality-opts">
+        <div class="quality-opt selected" data-q="0.85" onclick="selectQuality(this)">
+          <div class="q-title">標準</div>
+          <div class="q-sub">較小檔案</div>
+        </div>
+        <div class="quality-opt" data-q="0.95" onclick="selectQuality(this)">
+          <div class="q-title">高品質</div>
+          <div class="q-sub">較大檔案</div>
+        </div>
+        <div class="quality-opt" data-q="1.0" onclick="selectQuality(this)">
+          <div class="q-title">最高</div>
+          <div class="q-sub">原始解析度</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gen-card">
+      <h3>🔤 辨識語言</h3>
+      <div class="lang-selector" id="lang-selector">
+        <div class="lang-chip selected" data-lang="chi_tra" onclick="toggleLang(this)">繁體中文</div>
+        <div class="lang-chip selected" data-lang="eng" onclick="toggleLang(this)">英文</div>
+        <div class="lang-chip" data-lang="jpn" onclick="toggleLang(this)">日文</div>
+        <div class="lang-chip" data-lang="chi_sim" onclick="toggleLang(this)">簡體中文</div>
+      </div>
+    </div>
+
+    <button class="btn btn-success" id="gen-btn" onclick="generatePDF()" style="margin-top:4px">
+      ⬇️ 產生並下載 PDF
+    </button>
+
+    <div style="height:20px"></div>
+  </div>
+</div>
+
+<!-- Navigation tabs -->
+<div class="nav-tabs">
+  <button class="nav-tab active" id="tab-camera" onclick="switchTab('camera')">
+    <span class="tab-icon">📷</span>掃描
+  </button>
+  <button class="nav-tab" id="tab-pages" onclick="switchTab('pages')" style="position:relative">
+    <span class="tab-icon">📑</span>頁面
+    <span class="badge" id="pages-badge" style="display:none">0</span>
+  </button>
+  <button class="nav-tab" id="tab-generate" onclick="switchTab('generate')">
+    <span class="tab-icon">📤</span>輸出
+  </button>
+</div>
+
+<!-- OCR Overlay -->
+<div class="ocr-overlay" id="ocr-overlay">
+  <div class="ocr-title">🔍 正在辨識文字</div>
+  <div class="ocr-pct" id="ocr-pct">0%</div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="ocr-bar"></div>
+  </div>
+  <div class="ocr-sub" id="ocr-sub">載入辨識引擎中…</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+/* ═══════════════════════════════════════════
+   State
+═══════════════════════════════════════════ */
+let pages = [];          // [{dataURL, text, status}]
+let currentTab = 'camera';
+let stream = null;
+let facingMode = 'environment';
+let capturedDataURL = null;
+let selectedQuality = 0.85;
+let selectedLangs = ['chi_tra', 'eng'];
+let ocrCurrentIdx = -1;
+
+/* ═══════════════════════════════════════════
+   Camera
+═══════════════════════════════════════════ */
+async function startCamera() {
+  try {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); }
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode,
+        width: { ideal: 2560 },
+        height: { ideal: 1920 }
+      }
+    });
+    document.getElementById('video').srcObject = stream;
+  } catch (e) {
+    if (e.name === 'NotAllowedError') {
+      showToast('請允許相機權限後重新整理');
+    } else {
+      showToast('無法開啟相機：' + e.message);
+    }
+  }
+}
+
+async function toggleCamera() {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  await startCamera();
+}
+
+function capturePhoto() {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('preview-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0);
+  capturedDataURL = canvas.toDataURL('image/jpeg', 0.96);
+  showPreview();
+}
+
+function showPreview() {
+  switchView('preview');
+  const canvas = document.getElementById('preview-canvas');
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+  };
+  img.src = capturedDataURL;
+}
+
+function goToCamera() {
+  capturedDataURL = null;
+  switchView('camera');
+  switchTab('camera');
+}
+
+/* ═══════════════════════════════════════════
+   File input
+═══════════════════════════════════════════ */
+function openFilePicker() {
+  document.getElementById('file-input').click();
+}
+
+async function handleFileInput(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  for (const file of files) {
+    const dataURL = await readFileAsDataURL(file);
+    capturedDataURL = dataURL;
+    if (files.length === 1) {
+      showPreview();
+    } else {
+      await addPage(dataURL);
+    }
+  }
+  e.target.value = '';
+}
+
+function readFileAsDataURL(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   Page management
+═══════════════════════════════════════════ */
+async function confirmCapture() {
+  if (!capturedDataURL) return;
+  await addPage(capturedDataURL);
+  capturedDataURL = null;
+  switchTab('pages');
+}
+
+async function addPage(dataURL) {
+  const idx = pages.length;
+  pages.push({ dataURL, text: '', status: 'pending' });
+  updateUI();
+  renderPagesList();
+  showToast(`第 ${idx + 1} 頁已加入`);
+  // Start OCR in background
+  runOCR(idx);
+}
+
+function deletePage(idx) {
+  pages.splice(idx, 1);
+  updateUI();
+  renderPagesList();
+  showToast('已刪除頁面');
+}
+
+function updateUI() {
+  const count = pages.length;
+  document.getElementById('page-count').textContent = count + ' 頁';
+  document.getElementById('pages-badge').textContent = count;
+  document.getElementById('pages-badge').style.display = count > 0 ? '' : 'none';
+  document.getElementById('gen-page-count').textContent = count + ' 頁';
+  document.getElementById('gen-btn').disabled = count === 0;
+  const ocred = pages.filter(p => p.status === 'done').length;
+  document.getElementById('gen-ocr-count').textContent = ocred + ' 頁';
+  document.getElementById('gen-lang-show').textContent = selectedLangs.map(l => ({
+    chi_tra:'繁中', eng:'英文', jpn:'日文', chi_sim:'簡中'
+  }[l] || l)).join('＋');
+}
+
+function renderPagesList() {
+  const list = document.getElementById('pages-list');
+  if (pages.length === 0) {
+    list.innerHTML = `
+      <div class="pages-empty" style="min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--muted)">
+        <div class="icon">📭</div>
+        <p>尚未掃描任何頁面<br>點下方「掃描」開始拍照</p>
+      </div>`;
+    return;
+  }
+  list.innerHTML = pages.map((p, i) => {
+    const statusIcon = p.status === 'done' ? '✅' : p.status === 'processing' ? '⏳' : p.status === 'error' ? '❌' : '🔄';
+    const statusText = p.status === 'done' ? 'OCR 完成' : p.status === 'processing' ? '辨識中…' : p.status === 'error' ? 'OCR 失敗（點重試）' : '等待辨識';
+    const textPreview = p.text ? p.text.trim().slice(0, 100) : '';
+    return `
+    <div class="page-thumb" id="thumb-${i}">
+      <img src="${p.dataURL}" alt="第${i+1}頁">
+      <div class="page-thumb-info">
+        <div class="page-num">第 ${i + 1} 頁</div>
+        <div class="page-status">
+          ${p.status === 'processing' ? '<span class="ocr-dot"></span>' : ''}
+          ${statusIcon} ${statusText}
+        </div>
+        ${textPreview ? `<div class="page-text-preview">${escapeHTML(textPreview)}…</div>` : ''}
+        ${p.status === 'error' ? `<button class="btn btn-sm btn-secondary" style="margin-top:6px" onclick="retryOCR(${i})">🔁 重試 OCR</button>` : ''}
+      </div>
+      <button class="del-page-btn" onclick="deletePage(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   OCR with Tesseract.js
+   用靜態 Tesseract.recognize() 避免 Web Worker
+   跨域載入 WASM 的問題
+═══════════════════════════════════════════ */
+function makeLogger(idx) {
+  return m => {
+    if (m.status === 'loading tesseract core')       setOCROverlay(true, 5,  '載入核心…');
+    if (m.status === 'initializing tesseract')       setOCROverlay(true, 15, '初始化引擎…');
+    if (m.status === 'loading language traineddata') {
+      const pct = Math.round(15 + (m.progress || 0) * 55);
+      setOCROverlay(true, pct, `載入語言模型 ${Math.round((m.progress||0)*100)}%`);
+    }
+    if (m.status === 'initializing api')             setOCROverlay(true, 72, '準備辨識引擎…');
+    if (m.status === 'recognizing text') {
+      const pct = Math.round((m.progress || 0) * 100);
+      setOCROverlay(true, pct, `辨識第 ${idx + 1} 頁 ${pct}%`);
+    }
+  };
+}
+
+// 轉成 Canvas 是 Tesseract.js 在瀏覽器中最穩定的輸入格式
+// 同時限制長邊 ≤ 2400px，避免 WASM 記憶體不足
+function dataURLtoCanvas(dataURL, maxPx = 2400) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxPx || h > maxPx) {
+        if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else         { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas);
+    };
+    img.onerror = reject;
+    img.src = dataURL;
+  });
+}
+
+async function runOCR(idx) {
+  const page = pages[idx];
+  if (!page) return;
+  page.status = 'processing';
+  ocrCurrentIdx = idx;
+  renderPagesList();
+  setOCROverlay(true, 0, `準備辨識第 ${idx + 1} 頁…`);
+  try {
+    const canvas = await dataURLtoCanvas(page.dataURL);
+    const result = await Tesseract.recognize(
+      canvas,
+      selectedLangs.join('+'),
+      { logger: makeLogger(idx) }
+    );
+    page.text = result.data.text;
+    page.status = 'done';
+  } catch (e) {
+    page.status = 'error';
+    console.error('[OCR]', e);
+    showToast('OCR 失敗：' + (e?.message || String(e)), 5000);
+  } finally {
+    ocrCurrentIdx = -1;
+    setOCROverlay(false, 0, '');
+    updateUI();
+    renderPagesList();
+  }
+}
+
+async function retryOCR(idx) {
+  const page = pages[idx];
+  if (!page) return;
+  page.status = 'pending';
+  page.text = '';
+  renderPagesList();
+  await runOCR(idx);
+}
+
+function setOCROverlay(show, pct, msg) {
+  const overlay = document.getElementById('ocr-overlay');
+  overlay.classList.toggle('active', show);
+  if (show) {
+    document.getElementById('ocr-pct').textContent = pct + '%';
+    document.getElementById('ocr-bar').style.width = pct + '%';
+    document.getElementById('ocr-sub').textContent = msg;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Generate PDF
+═══════════════════════════════════════════ */
+async function generatePDF() {
+  if (pages.length === 0) { showToast('請先掃描至少一頁'); return; }
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 產生中…';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    let pdf = null;
+
+    for (let i = 0; i < pages.length; i++) {
+      const p = pages[i];
+      const img = await loadImage(p.dataURL);
+      const imgW = img.naturalWidth;
+      const imgH = img.naturalHeight;
+
+      // A4 in mm: 210 x 297
+      const a4W = 210, a4H = 297;
+      const ratio = Math.min(a4W / imgW, a4H / imgH);
+      const pw = imgW * ratio;
+      const ph = imgH * ratio;
+      const ox = (a4W - pw) / 2;
+      const oy = (a4H - ph) / 2;
+
+      if (i === 0) {
+        pdf = new jsPDF({
+          orientation: pw > ph ? 'landscape' : 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+      } else {
+        pdf.addPage('a4', pw > ph ? 'landscape' : 'portrait');
+      }
+
+      // Draw image
+      const canvas = document.createElement('canvas');
+      canvas.width = imgW;
+      canvas.height = imgH;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      const imgData = canvas.toDataURL('image/jpeg', selectedQuality);
+      pdf.addImage(imgData, 'JPEG', ox, oy, pw, ph);
+
+      // Add invisible text layer for searchability
+      if (p.text && p.text.trim()) {
+        pdf.setFontSize(1);
+        pdf.setTextColor(255, 255, 255);
+        const lines = p.text.split('\n').filter(l => l.trim());
+        const lineH = ph / Math.max(lines.length, 1);
+        lines.forEach((line, li) => {
+          pdf.text(line, ox + 1, oy + li * lineH + 2, { baseline: 'top' });
+        });
+      }
+    }
+
+    const ts = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+    pdf.save(`scan_${ts}.pdf`);
+    showToast('✅ PDF 已下載！');
+  } catch (e) {
+    showToast('產生失敗：' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⬇️ 產生並下載 PDF';
+  }
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+/* ═══════════════════════════════════════════
+   Settings
+═══════════════════════════════════════════ */
+function selectQuality(el) {
+  document.querySelectorAll('.quality-opt').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedQuality = parseFloat(el.dataset.q);
+}
+
+function toggleLang(el) {
+  const lang = el.dataset.lang;
+  el.classList.toggle('selected');
+  selectedLangs = Array.from(document.querySelectorAll('.lang-chip.selected')).map(e => e.dataset.lang);
+  if (selectedLangs.length === 0) {
+    el.classList.add('selected');
+    selectedLangs = [lang];
+  }
+  updateUI();
+}
+
+/* ═══════════════════════════════════════════
+   Navigation
+═══════════════════════════════════════════ */
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'camera') {
+    switchView('camera');
+    document.getElementById('header-sub').textContent = '相機對準文件拍照';
+    if (!stream) startCamera();
+  } else if (tab === 'pages') {
+    switchView('pages');
+    document.getElementById('header-sub').textContent = '已掃描頁面';
+    renderPagesList();
+  } else if (tab === 'generate') {
+    switchView('generate');
+    document.getElementById('header-sub').textContent = '輸出 PDF 設定';
+    updateUI();
+  }
+}
+
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(name + '-view').classList.add('active');
+}
+
+/* ═══════════════════════════════════════════
+   Utils
+═══════════════════════════════════════════ */
+function showToast(msg, duration = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ═══════════════════════════════════════════
+   Init
+═══════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', async () => {
+  await startCamera();
+  updateUI();
+
+  // PWA install prompt
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showToast('💡 可加入主畫面以離線使用', 3500);
+  });
+});
+
+// Prevent body scroll bounce on iOS
+document.addEventListener('touchmove', e => {
+  if (e.target.closest('.main, #pages-view, #generate-view')) return;
+  e.preventDefault();
+}, { passive: false });
+</script>
+</body>
+</html>
